@@ -1,4 +1,6 @@
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 
 namespace KerbalPowerPlants;
 
@@ -23,6 +25,10 @@ public class FXModuleConstrainAnimation : PartModule
     private Transform target;
     private Animation animator;
     private AnimationState clipState;
+    private Quaternion initRot;
+
+    // Public fields.
+    public List<Func<float, float>> modifiers = [];
 
     #region Lifetime
 
@@ -38,6 +44,11 @@ public class FXModuleConstrainAnimation : PartModule
             ErrorAndDisable($"target transform '{targetName}' not found");
             return;
         }
+
+        // Cache the authored pose so we can extract per-axis twist relative to it. Relies on
+        // this module's OnStart running before anything else mutates target.localRotation; the
+        // orchestrator is listed after us in the cfg to keep that invariant.
+        initRot = target.localRotation;
 
         // Find the animator component.
         var animators = part.FindModelAnimators(animationName);
@@ -124,26 +135,26 @@ public class FXModuleConstrainAnimation : PartModule
         float angle = ReadAngle();
         float t = Mathf.InverseLerp(angleMin, angleMax, angle);
 
+        foreach (var modifier in modifiers)
+            t = modifier(t);
+
         clipState.normalizedTime = Mathf.Clamp01(t);
         animator.Sample();
     }
 
     private float ReadAngle()
     {
-        Vector3 e = target.localEulerAngles;
+        Quaternion rel = Quaternion.Inverse(initRot) * target.localRotation;
 
-        float v = axis switch
+        Vector3 a = axis switch
         {
-            Axis.X => e.x,
-            Axis.Y => e.y,
-            Axis.Z => e.z,
-            _ => 0f,
+            Axis.X => Vector3.right,
+            Axis.Y => Vector3.up,
+            Axis.Z => Vector3.forward,
+            _ => Vector3.right,
         };
 
-        if (v > 180f)
-            v -= 360f;
-
-        return v;
+        return Rotations.TwistAngle(rel, a);
     }
 
     #endregion

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using KSP.Localization;
 using UnityEngine;
 
 // ModuleGimbalTorque
@@ -13,15 +14,12 @@ using UnityEngine;
 //   Y = up      -> roll axis (the direction the craft points)
 //   Z = forward -> yaw axis
 //
-// Thrust-transform convention (stock KSP): thrust force is applied along -thrustTransform.forward
-// (the thrust line is the transform's local Z), so the gimbal pivots about local X and local Y.
+// Thrust-transform convention (stock KSP): thrust force on the vessel is applied along
+// +thrustTransform.forward (the transform's local +Z), so the gimbal pivots about local X
+// and local Y to vector that thrust direction.
 //
-// Sign handling:
-//   * The thrust-axis sign (-forward) MUST be right; a global flip there silently anti-assists
-//     and is NOT correctable via commandSign. If every axis fights you, see the marked line in
-//     SolveGimbal/GetPotentialTorque.
-//   * The pitch/roll/yaw control-input signs ARE handled per-axis by commandSign (default 1,1,1).
-//     If one axis drives the gimbal backwards in flight, flip that component in the cfg.
+// Per-axis input sign is handled by commandSign (default 1,1,1). Flip a component to -1 if
+// that axis drives the gimbal backwards in flight (unusual artist conventions).
 
 public class ModuleGimbalTorque : PartModule, ITorqueProvider
 {
@@ -81,6 +79,14 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [UI_Toggle(disabledText = "#autoLOC_6001073", enabledText = "#autoLOC_6001074", affectSymCounterparts = UI_Scene.Editor)]
     public bool enableRoll = true;
 
+    // Whether this part exposes the per-axis enable toggles at all. If true, the PAW shows a
+    // (advanced-tweakable) "Show Axis Toggles" button that reveals/hides them.
+    [KSPField]
+    public bool showToggles = true;
+
+    [KSPField(isPersistant = true)]
+    public bool currentShowToggles;
+
     [KSPField(isPersistant = true)]
     public bool gimbalActive;
 
@@ -119,6 +125,13 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [KSPAction("#autoLOC_6001390", KSPActionGroup.None, true)]
     public void ToggleRollAction(KSPActionParam param) => enableRoll = !enableRoll;
 
+    [KSPEvent(advancedTweakable = true, guiActive = false, guiActiveEditor = false, guiName = "#autoLOC_6001384")]
+    public void ToggleToggles()
+    {
+        currentShowToggles = !currentShowToggles;
+        UpdateToggles();
+    }
+
     // ---------------------------------------------------------------- Lifecycle ----
 
     public override void OnLoad(ConfigNode node) => EnsureRanges();
@@ -140,6 +153,8 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         }
 
         engineMultsList = null;   // rebuilt lazily on first GetPotentialTorque
+
+        UpdateToggles();
     }
 
     public override void OnActive() => gimbalActive = true;
@@ -150,6 +165,26 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         if (gimbalRangeYP < 0f) gimbalRangeYP = gimbalRange;
         if (gimbalRangeXN < 0f) gimbalRangeXN = gimbalRangeXP;
         if (gimbalRangeYN < 0f) gimbalRangeYN = gimbalRangeYP;
+    }
+
+    // Sync the per-axis enable-toggle visibility (and the "Show Axis Toggles" button's label)
+    // with current state. Call after anything that flips showToggles, currentShowToggles, or
+    // moduleIsEnabled.
+    public void UpdateToggles()
+    {
+        bool show = showToggles && currentShowToggles && moduleIsEnabled;
+
+        Fields[nameof(enableYaw)].guiActive = show;
+        Fields[nameof(enableYaw)].guiActiveEditor = show;
+        Fields[nameof(enablePitch)].guiActive = show;
+        Fields[nameof(enablePitch)].guiActiveEditor = show;
+        Fields[nameof(enableRoll)].guiActive = show;
+        Fields[nameof(enableRoll)].guiActiveEditor = show;
+
+        BaseEvent ev = Events[nameof(ToggleToggles)];
+        ev.guiActive = showToggles && moduleIsEnabled;
+        ev.guiActiveEditor = showToggles && moduleIsEnabled;
+        ev.guiName = Localizer.Format(currentShowToggles ? "#autoLOC_221352" : "#autoLOC_7000023");
     }
 
     // ---------------------------------------------------------------- Actuation ----
@@ -219,33 +254,31 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     private Vector2 SolveGimbal(Transform t, Vector3 com, Vector3 desiredDir, float commandMag, float limiter)
     {
         Vector3 r = t.position - com;        // lever arm (world); invariant under localRotation
-        Vector3 thrustDir = -t.forward;      // thrust force direction (world). <-- flip if all axes anti-assist
+        Vector3 thrustDir = t.forward;       // thrust force direction (world)
 
         // Change in thrust direction for a small +deflection about each gimbal axis, measured with
         // the same quaternion convention we apply below, so the signs are guaranteed consistent.
-        Vector3 dThrustX = -(Quaternion.AngleAxis(Probe, t.right) * t.forward) - thrustDir;
-        Vector3 dThrustY = -(Quaternion.AngleAxis(Probe, t.up) * t.forward) - thrustDir;
+        Vector3 dThrustX = (Quaternion.AngleAxis(Probe, t.right) * thrustDir) - thrustDir;
+        Vector3 dThrustY = (Quaternion.AngleAxis(Probe, t.up) * thrustDir) - thrustDir;
 
         // Torque change per +deflection (tau = r x F). Thrust magnitude is irrelevant to the
         // direction we pick, so unit thrust is used here.
         Vector3 torquePerX = Vector3.Cross(r, dThrustX);
         Vector3 torquePerY = Vector3.Cross(r, dThrustY);
 
-        // Effectiveness of each gimbal axis at producing the desired torque.
-        float gx = Vector3.Dot(torquePerX, desiredDir);
-        float gy = Vector3.Dot(torquePerY, desiredDir);
+        float magX = torquePerX.magnitude;
+        float magY = torquePerY.magnitude;
 
-        float maxAbs = Mathf.Max(Mathf.Abs(gx), Mathf.Abs(gy));
-        if (maxAbs < Eps)
-            return Vector2.zero;             // geometry can't help in the commanded direction
+        // Per-axis alignment with the commanded torque, expressed as a fraction of that axis's
+        // own maximum achievable torque magnitude. relX/relY are dimensionless [-1, 1] and degrade
+        // smoothly to 0 when the geometry can't help -- no cross-axis normalization, so float
+        // noise on a near-zero projection stays near zero instead of getting amplified to +/-1.
+        // Full-stick sweep traces a circle (ellipse for asymmetric ranges/axes) of deflections.
+        float relX = magX > 0f ? Vector3.Dot(torquePerX, desiredDir) / magX : 0f;
+        float relY = magY > 0f ? Vector3.Dot(torquePerY, desiredDir) / magY : 0f;
 
-        // Proportional to effectiveness; the most-effective axis saturates first, an axis that
-        // barely helps (mostly off-axis torque) is down-weighted automatically.
-        float nx = gx / maxAbs;              // [-1, 1]
-        float ny = gy / maxAbs;              // [-1, 1]
-
-        float angleX = nx * commandMag * (nx >= 0f ? gimbalRangeXP : gimbalRangeXN) * limiter;
-        float angleY = ny * commandMag * (ny >= 0f ? gimbalRangeYP : gimbalRangeYN) * limiter;
+        float angleX = relX * commandMag * (relX >= 0f ? gimbalRangeXP : gimbalRangeXN) * limiter;
+        float angleY = relY * commandMag * (relY >= 0f ? gimbalRangeYP : gimbalRangeYN) * limiter;
 
         return new Vector2(angleX, angleY);
     }
@@ -289,13 +322,13 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
             if (thrust <= 0f) continue;
 
             Vector3 r = t.position - com;
-            Vector3 thrustDir = -t.forward;   // <-- flip if all axes anti-assist (see SolveGimbal)
+            Vector3 thrustDir = t.forward;
 
             // Torque produced (relative to neutral) at each single-axis limit, finite deflection.
-            Vector3 tXP = Vector3.Cross(r, thrust * (-(Quaternion.AngleAxis(gimbalRangeXP * limiter, t.right) * t.forward) - thrustDir));
-            Vector3 tXN = Vector3.Cross(r, thrust * (-(Quaternion.AngleAxis(-gimbalRangeXN * limiter, t.right) * t.forward) - thrustDir));
-            Vector3 tYP = Vector3.Cross(r, thrust * (-(Quaternion.AngleAxis(gimbalRangeYP * limiter, t.up) * t.forward) - thrustDir));
-            Vector3 tYN = Vector3.Cross(r, thrust * (-(Quaternion.AngleAxis(-gimbalRangeYN * limiter, t.up) * t.forward) - thrustDir));
+            Vector3 tXP = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(gimbalRangeXP * limiter, t.right) * thrustDir) - thrustDir));
+            Vector3 tXN = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(-gimbalRangeXN * limiter, t.right) * thrustDir) - thrustDir));
+            Vector3 tYP = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(gimbalRangeYP * limiter, t.up) * thrustDir) - thrustDir));
+            Vector3 tYN = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(-gimbalRangeYN * limiter, t.up) * thrustDir) - thrustDir));
 
             AxisAuthority(tXP, tXN, tYP, tYN, axPitch, out float p, out float n); pos.x += p; neg.x += n;
             AxisAuthority(tXP, tXN, tYP, tYN, axYaw, out p, out n); pos.z += p; neg.z += n;

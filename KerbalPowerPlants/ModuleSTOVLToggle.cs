@@ -22,17 +22,17 @@ public class ModuleSTOVLToggle : PartModule
     [KSPField] public int animationLayer = 1;
     [KSPField] public bool instantInEditor = true;
 
-    [KSPField] public string deployText = "Engage STOVL";
-    [KSPField] public string retractText = "Disengage STOVL";
-    [KSPField] public string actionText = "Toggle STOVL";
-    [KSPField] public string statusFieldName = "STOVL";
+    [KSPField] public string deployText = "Engage Hover Mode";
+    [KSPField] public string retractText = "Disengage Hover Mode";
+    [KSPField] public string actionText = "Toggle Hover Mode";
+    [KSPField] public string statusFieldName = "Hover";
 
     [KSPField] public string managedGimbalTransforms = string.Empty;
     [KSPField] public string managedConstraintAnimations = string.Empty;
 
     [KSPField(isPersistant = true)] public bool isDeployed = false;
 
-    [KSPField(guiActive = true, guiActiveEditor = false, guiName = "STOVL")]
+    [KSPField(guiActive = true, guiActiveEditor = false, guiName = "Hover")]
     public string status = StowedText;
 
     private const string StowedText = "Stowed";
@@ -44,26 +44,49 @@ public class ModuleSTOVLToggle : PartModule
     private AnimationState clipState;
     private readonly List<ModuleGimbalTorque> managedGimbals = [];
     private readonly List<FXModuleConstrainAnimation> managedConstraints = [];
+    private MultiModeEngine multimode;
     private bool isMoving;
 
-    [KSPEvent(guiActive = true, guiActiveEditor = true, guiActiveUnfocused = false, guiName = "Engage STOVL")]
+    [KSPEvent(guiActive = true, guiActiveEditor = true, guiActiveUnfocused = false, guiName = "Engage Hover")]
     public void Toggle()
     {
         SetDeployed(!isDeployed, instant: HighLogic.LoadedSceneIsEditor && instantInEditor);
     }
 
-    [KSPAction("Toggle STOVL")]
+    [KSPAction("Toggle Hover")]
     public void ToggleAction(KSPActionParam param) { Toggle(); }
+
+    #region Lifetime
 
     public override void OnStart(StartState state)
     {
         Actions[nameof(ToggleAction)].guiName = actionText;
         Fields[nameof(status)].guiName = statusFieldName;
 
-        if (!FindAnimation()) return;
+        if (!FindAnimation())
+            return;
+
         FindManagedModules();
+
+        foreach (var animConstraint in managedConstraints)
+            animConstraint?.modifiers.Add(ConstraintModifier);
+
         ApplyState(isDeployed, instant: true);
     }
+
+    private void Update()
+    {
+        if (isMoving && !anim.IsPlaying(animationName))
+            FinishMove();
+    }
+
+    private void OnDestroy()
+    {
+        foreach (var animConstraint in managedConstraints)
+            animConstraint?.modifiers.Remove(ConstraintModifier);
+    }
+
+    #endregion
 
     private bool FindAnimation()
     {
@@ -116,6 +139,8 @@ public class ModuleSTOVLToggle : PartModule
                 isMoving = true;
                 status = DeployingText;
             }
+
+            AllowAfterburner(true);
         }
         else
         {
@@ -123,6 +148,7 @@ public class ModuleSTOVLToggle : PartModule
             // disabling, so animation playback starts from a clean state.
             SnapGimbalsToRest();
             EnableGimbals(false);
+            AllowAfterburner(false);
 
             if (instant)
             {
@@ -139,11 +165,6 @@ public class ModuleSTOVLToggle : PartModule
                 status = RetractingText;
             }
         }
-    }
-
-    private void Update()
-    {
-        if (isMoving && !anim.IsPlaying(animationName)) FinishMove();
     }
 
     private void FinishMove()
@@ -200,18 +221,24 @@ public class ModuleSTOVLToggle : PartModule
                 managedGimbals.Add(g);
             else if (m is FXModuleConstrainAnimation c && constraintNames.Contains(c.animationName))
                 managedConstraints.Add(c);
+            else if (m is MultiModeEngine mm)
+                multimode = mm;
         }
     }
 
     private static HashSet<string> ParseCsv(string csv)
     {
         var set = new HashSet<string>(StringComparer.Ordinal);
-        if (string.IsNullOrEmpty(csv)) return set;
+
+        if (string.IsNullOrEmpty(csv))
+            return set;
+
         foreach (var tok in csv.Split(','))
         {
             var s = tok.Trim();
             if (s.Length > 0) set.Add(s);
         }
+
         return set;
     }
 
@@ -230,7 +257,10 @@ public class ModuleSTOVLToggle : PartModule
     private void EnableGimbals(bool en)
     {
         for (int i = 0; i < managedGimbals.Count; i++)
+        {
             managedGimbals[i].moduleIsEnabled = en;
+            managedGimbals[i].UpdateToggles();
+        }
     }
 
     private void SnapGimbalsToRest()
@@ -258,5 +288,41 @@ public class ModuleSTOVLToggle : PartModule
                 g.currentAngles[j] = Vector3.zero;
             }
         }
+    }
+
+    static double Clamp(double v, double min, double max) =>
+        v < min ? min : v > max ? max : v;
+
+    readonly double K = (2.0 * Math.Sqrt(2.0) - 3.0) / 4.0;
+
+    float ConstraintModifier(float t) =>
+        (float)ProgressForElevation(Mathf.Lerp(90f, 0, t));
+
+    double ElevationForProgress(double t)
+    {
+        t = Clamp(t, 0.0, 1.0);
+        double s = Math.Sin(Math.PI * t);
+        double v = K * s * s + 0.5 * Math.Cos(Math.PI * t) + 0.5;
+        return Math.Asin(Clamp(v, -1.0, 1.0)) * (180.0 / Math.PI);
+    }
+
+    double ProgressForElevation(double deg)
+    {
+        double s = Math.Sin(Clamp(deg, 0.0, 90.0) * (Math.PI / 180.0));
+        double a = K, b = -0.5, cc = -(K + 0.5) + s;
+        double disc = b * b - 4.0 * a * cc;
+        double x = (-b - Math.Sqrt(disc)) / (2.0 * a);
+        return Math.Acos(Clamp(x, -1.0, 1.0)) / Math.PI;
+    }
+
+    void AllowAfterburner(bool allow)
+    {
+        if (multimode == null)
+            return;
+
+        if (!allow && !multimode.runningPrimary)
+            multimode.SetPrimary(true);
+
+        multimode.moduleIsEnabled = false;
     }
 }
