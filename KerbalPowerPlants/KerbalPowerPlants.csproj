@@ -40,11 +40,11 @@
 		<Copy SourceFiles="$(RepoRoot)readme.md" DestinationFiles="$(KSPBT_ModRoot)Readme.txt" Condition="Exists('$(RepoRoot)readme.md')" />
 		<Copy SourceFiles="$(RepoRoot)license.md" DestinationFiles="$(KSPBT_ModRoot)License.txt" Condition="Exists('$(RepoRoot)license.md')" />
 	</Target>
-	<!-- Copy mod folder to game -->
+	<!-- Copy mod folder to game
 	<Target Name="CopyToGame" AfterTargets="Build">
 		<ItemGroup>
 			<ModFiles Include="$(KSPBT_ModRoot)\**\*" />
 		</ItemGroup>
 		<Copy SourceFiles="@(ModFiles)" DestinationFiles="@(ModFiles->'$(KSPBT_GameRoot)/GameData/$(MSBuildProjectName)/%(RecursiveDir)%(Filename)%(Extension)')" />
-	</Target>
+	</Target> -->
 </Project>
