@@ -2,29 +2,8 @@ using System.Collections.Generic;
 using KSP.Localization;
 using UnityEngine;
 
-// ModuleGimbalTorque
-// ------------------
-// A drop-in replacement for stock ModuleGimbal that solves the gimbal deflection from the
-// DESIRED CONTROL TORQUE using the real lever arm (thrust transform -> CoM) and the real
-// thrust direction. This makes it correct for arbitrary engine position and orientation,
-// rather than assuming a tail-mounted, roughly-axial engine the way stock does.
-//
-// Control reference frame (vessel.ReferenceTransform), matching stock control conventions:
-//   X = right   -> pitch axis
-//   Y = up      -> roll axis (the direction the craft points)
-//   Z = forward -> yaw axis
-//
-// Thrust-transform convention (stock KSP): thrust force on the vessel is applied along
-// +thrustTransform.forward (the transform's local +Z), so the gimbal pivots about local X
-// and local Y to vector that thrust direction.
-//
-// Per-axis input sign is handled by commandSign (default 1,1,1). Flip a component to -1 if
-// that axis drives the gimbal backwards in flight (unusual artist conventions).
-
 public class ModuleGimbalTorque : PartModule, ITorqueProvider
 {
-    // ---- Config fields (names kept identical to stock ModuleGimbal for cfg compatibility) ----
-
     [KSPField]
     public string gimbalTransformName = "thrustTransform";
 
@@ -87,6 +66,8 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [KSPField(isPersistant = true)]
     public bool currentShowToggles;
 
+    // Latches true once any engine on the part ignites, then stays true.
+    // Stock relies on ModuleEngines.Activate() flipping this via an `is ModuleGimbal` type-check.
     [KSPField(isPersistant = true)]
     public bool gimbalActive;
 
@@ -101,6 +82,9 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
 
     // Engines (and their thrust share) feeding each gimbal transform; for GetPotentialTorque.
     private List<List<KeyValuePair<ModuleEngines, float>>> engineMultsList;
+
+    // All engines on the part; cached once and polled for ignition until gimbalActive latches.
+    private List<ModuleEngines> engines;
 
     private const float Probe = 1f;        // small probe angle (deg) to measure gimbal sensitivity
     private const float Eps = 1e-6f;
@@ -128,8 +112,6 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [KSPEvent(advancedTweakable = true, guiActive = false, guiActiveEditor = false, guiName = "#autoLOC_6001384")]
     public void ToggleToggles()
     {
-        Debug.Log($"ModuleGimbalTorque ToggleToggles.");
-
         currentShowToggles = !currentShowToggles;
         UpdateToggles();
     }
@@ -140,8 +122,6 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
 
     public override void OnStart(StartState state)
     {
-        Debug.Log($"ModuleGimbalTorque OnStart. {part.state}, {part.ResumeState}");
-
         EnsureRanges();
 
         gimbalTransforms = new List<Transform>(part.FindModelTransforms(gimbalTransformName));
@@ -156,15 +136,10 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
             angleVelocities[i] = Vector3.zero;
         }
 
-        engineMultsList = null;   // rebuilt lazily on first GetPotentialTorque
+        engineMultsList = null;
+        engines = part.FindModulesImplementing<ModuleEngines>();
 
         UpdateToggles();
-    }
-
-    public override void OnActive()
-    {
-        Debug.Log($"ModuleGimbalTorque OnActive. gimbalActive is {gimbalActive}");
-        gimbalActive = true;
     }
 
     private void EnsureRanges()
@@ -173,6 +148,15 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         if (gimbalRangeYP < 0f) gimbalRangeYP = gimbalRange;
         if (gimbalRangeXN < 0f) gimbalRangeXN = gimbalRangeXP;
         if (gimbalRangeYN < 0f) gimbalRangeYN = gimbalRangeYP;
+    }
+
+    private bool AnyEngineIgnited()
+    {
+        if (engines == null) return false;
+        for (int i = 0; i < engines.Count; i++)
+            if (engines[i].EngineIgnited)
+                return true;
+        return false;
     }
 
     // Sync the per-axis enable-toggle visibility (and the "Show Axis Toggles" button's label)
@@ -199,12 +183,19 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
 
     public void FixedUpdate()
     {
-        if (!HighLogic.LoadedSceneIsFlight || !gimbalActive || !moduleIsEnabled
-            || vessel == null || vessel.ReferenceTransform == null)
+        if (!HighLogic.LoadedSceneIsFlight || !moduleIsEnabled
+            || vessel == null || vessel.ReferenceTransform == null 
+            || gimbalTransforms == null)
             return;
 
-        if (gimbalTransforms == null)
-            OnStart(StartState.Flying);
+        // Stay inert until an engine on the part has ignited, then latch on for good.
+        if (!gimbalActive)
+        {
+            if (!AnyEngineIgnited())
+                return;
+
+            gimbalActive = true;
+        }
 
         Transform rt = vessel.ReferenceTransform;
         Vector3 com = vessel.CurrentCoM;
