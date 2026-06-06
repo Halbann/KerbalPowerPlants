@@ -323,10 +323,13 @@ public class ModuleSTOVLToggle : PartModule
         if (!allow && !multimode.runningPrimary)
             multimode.SetPrimary(HighLogic.LoadedSceneIsFlight);
 
-        multimode.moduleIsEnabled = allow;
-
         multimode.Events[nameof(MultiModeEngine.ModeEvent)].guiActive = allow;
         multimode.Events[nameof(MultiModeEngine.ModeEvent)].guiActiveEditor = allow;
         multimode.Actions[nameof(MultiModeEngine.ModeAction)].active = allow;
+
+        multimode.moduleIsEnabled = allow;
+
+        if (multimode.primaryEngine != null && multimode.secondaryEngine != null)
+            multimode.loadFailure = !allow;
     }
 }
