@@ -140,7 +140,7 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
 
     public override void OnStart(StartState state)
     {
-        Debug.Log($"ModuleGimbalTorque OnStart.");
+        Debug.Log($"ModuleGimbalTorque OnStart. {part.state}, {part.ResumeState}");
 
         EnsureRanges();
 
