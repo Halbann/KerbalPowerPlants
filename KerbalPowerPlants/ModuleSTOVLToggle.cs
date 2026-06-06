@@ -144,11 +144,8 @@ public class ModuleSTOVLToggle : PartModule
         }
         else
         {
-            // Snap gimbal targets back to their captured rest pose before
-            // disabling, so animation playback starts from a clean state.
             SnapGimbalsToRest();
             EnableGimbals(false);
-            AllowAfterburner(true);
 
             if (instant)
             {
@@ -156,6 +153,7 @@ public class ModuleSTOVLToggle : PartModule
                 SetConstraintsEnabled(false);
                 isMoving = false;
                 status = StowedText;
+                AllowAfterburner(true);
             }
             else
             {
@@ -180,6 +178,7 @@ public class ModuleSTOVLToggle : PartModule
         {
             SetConstraintsEnabled(false);
             status = StowedText;
+            AllowAfterburner(true);
         }
     }
 
