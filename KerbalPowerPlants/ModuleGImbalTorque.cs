@@ -157,7 +157,11 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         UpdateToggles();
     }
 
-    public override void OnActive() => gimbalActive = true;
+    public override void OnActive()
+    {
+        Debug.Log($"ModuleGimbalTorque OnActive. gimbalActive is {gimbalActive}");
+        gimbalActive = true;
+    }
 
     private void EnsureRanges()
     {
