@@ -140,7 +140,7 @@ public class ModuleSTOVLToggle : PartModule
                 status = DeployingText;
             }
 
-            AllowAfterburner(true);
+            AllowAfterburner(false);
         }
         else
         {
@@ -148,7 +148,7 @@ public class ModuleSTOVLToggle : PartModule
             // disabling, so animation playback starts from a clean state.
             SnapGimbalsToRest();
             EnableGimbals(false);
-            AllowAfterburner(false);
+            AllowAfterburner(true);
 
             if (instant)
             {
@@ -321,8 +321,12 @@ public class ModuleSTOVLToggle : PartModule
             return;
 
         if (!allow && !multimode.runningPrimary)
-            multimode.SetPrimary(true);
+            multimode.SetPrimary(HighLogic.LoadedSceneIsFlight);
 
-        multimode.moduleIsEnabled = false;
+        multimode.moduleIsEnabled = allow;
+
+        multimode.Events[nameof(MultiModeEngine.ModeEvent)].guiActive = allow;
+        multimode.Events[nameof(MultiModeEngine.ModeEvent)].guiActiveEditor = allow;
+        multimode.Actions[nameof(MultiModeEngine.ModeAction)].active = allow;
     }
 }
