@@ -45,7 +45,7 @@ netkan.exe
 packages/
 
 # build products
-*.dll
+# *.dll
 *.pdb
 Builds/
 GameData/*/*.txt
