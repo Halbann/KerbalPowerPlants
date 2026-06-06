@@ -22,23 +22,23 @@ public class ModuleSTOVLToggle : PartModule
     [KSPField] public int animationLayer = 1;
     [KSPField] public bool instantInEditor = true;
 
-    [KSPField] public string deployText = "Engage Hover Mode";
-    [KSPField] public string retractText = "Disengage Hover Mode";
-    [KSPField] public string actionText = "Toggle Hover Mode";
-    [KSPField] public string statusFieldName = "Hover";
+    [KSPField] public string deployText = "Engage Swivel";
+    [KSPField] public string retractText = "Disengage Swivel";
+    [KSPField] public string actionText = "Toggle Swivel";
+    [KSPField] public string statusFieldName = "Swivel";
 
     [KSPField] public string managedGimbalTransforms = string.Empty;
     [KSPField] public string managedConstraintAnimations = string.Empty;
 
     [KSPField(isPersistant = true)] public bool isDeployed = false;
 
-    [KSPField(guiActive = true, guiActiveEditor = false, guiName = "Hover")]
+    [KSPField(guiActive = true, guiActiveEditor = false, guiName = "Swivel")]
     public string status = StowedText;
 
-    private const string StowedText = "Stowed";
-    private const string DeployingText = "Deploying";
-    private const string DeployedText = "Deployed";
-    private const string RetractingText = "Retracting";
+    private const string StowedText = "Disengaged";
+    private const string DeployingText = "Engaging";
+    private const string DeployedText = "Engaged";
+    private const string RetractingText = "Disengaging";
 
     private Animation anim;
     private AnimationState clipState;
@@ -47,13 +47,13 @@ public class ModuleSTOVLToggle : PartModule
     private MultiModeEngine multimode;
     private bool isMoving;
 
-    [KSPEvent(guiActive = true, guiActiveEditor = true, guiActiveUnfocused = false, guiName = "Engage Hover")]
+    [KSPEvent(guiActive = true, guiActiveEditor = true, guiActiveUnfocused = false, guiName = "Engage Swivel")]
     public void Toggle()
     {
         SetDeployed(!isDeployed, instant: HighLogic.LoadedSceneIsEditor && instantInEditor);
     }
 
-    [KSPAction("Toggle Hover")]
+    [KSPAction("Toggle Swivel")]
     public void ToggleAction(KSPActionParam param) { Toggle(); }
 
     #region Lifetime
