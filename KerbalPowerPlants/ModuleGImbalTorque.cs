@@ -128,6 +128,8 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [KSPEvent(advancedTweakable = true, guiActive = false, guiActiveEditor = false, guiName = "#autoLOC_6001384")]
     public void ToggleToggles()
     {
+        Debug.Log($"ModuleGimbalTorque ToggleToggles.");
+
         currentShowToggles = !currentShowToggles;
         UpdateToggles();
     }
@@ -138,6 +140,8 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
 
     public override void OnStart(StartState state)
     {
+        Debug.Log($"ModuleGimbalTorque OnStart.");
+
         EnsureRanges();
 
         gimbalTransforms = new List<Transform>(part.FindModelTransforms(gimbalTransformName));
