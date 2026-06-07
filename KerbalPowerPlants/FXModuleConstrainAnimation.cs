@@ -5,15 +5,13 @@ using System.Collections.Generic;
 namespace KerbalPowerPlants;
 
 // Continuously scrubs an Animation clip's normalized time to match the local
-// rotation of a target transform on a chosen axis. Modelled on Blender's
-// Action Constraint with target = a bone, source = rotation, output = action
-// Only rotation for now.
+// rotation of a target transform on a chosen axis.
+// todo: generic drivers, not just rotation.
 public class FXModuleConstrainAnimation : PartModule
 {
     public enum Axis { X, Y, Z }
 
     // Config.
-
     [KSPField] public string animationName = string.Empty;
     [KSPField] public string targetName = string.Empty;
     [KSPField] public Axis axis = Axis.X;

@@ -3,14 +3,12 @@ using UnityEngine;
 namespace KerbalPowerPlants;
 
 // Continuously rotates a target transform around a configured local axis by an angle
-// proportional to the swing-twist deflection of a source transform around its own configured
-// axis. Modelled on Blender's Copy Rotation constraint.
+// proportional to the rotation of a source transform around its own configured axis.
 public class FXModuleCopyRotation : PartModule
 {
     public enum Axis { X, Y, Z }
 
     // Config.
-
     [KSPField] public string sourceName = string.Empty;
     [KSPField] public Axis sourceAxis = Axis.Y;
     [KSPField] public string targetName = string.Empty;
@@ -51,9 +49,7 @@ public class FXModuleCopyRotation : PartModule
 
     protected void OnEnable()
     {
-        if (!SceneValid())
-            return;
-        if (source == null || target == null)
+        if (!SceneValid() || source == null || target == null)
             return;
 
         Apply();
@@ -61,12 +57,9 @@ public class FXModuleCopyRotation : PartModule
 
     protected void OnDisable()
     {
-        if (!SceneValid())
-            return;
-        if (target == null)
+        if (!SceneValid() || target == null)
             return;
 
-        // Hand the target back to its authored pose so nothing downstream sees a stuck offset.
         target.localRotation = targetInitRot;
     }
 
@@ -93,7 +86,8 @@ public class FXModuleCopyRotation : PartModule
 
     public void Apply()
     {
-        if (source == null || target == null) return;
+        if (source == null || target == null)
+            return;
 
         Quaternion rel = Quaternion.Inverse(sourceInitRot) * source.localRotation;
         float sourceAngle = Rotations.TwistAngle(rel, AxisVector(sourceAxis));

@@ -1,9 +1,11 @@
 using System.Collections.Generic;
-using KSP.Localization;
 using UnityEngine;
+using KSP.Localization;
 
 public class ModuleGimbalTorque : PartModule, ITorqueProvider
 {
+    #region Config
+
     [KSPField]
     public string gimbalTransformName = "thrustTransform";
 
@@ -15,20 +17,11 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [KSPField(isPersistant = true, guiActive = true, guiName = "#autoLOC_6001383")]
     public float gimbalLimiter = 100f;
 
-    [KSPField]
-    public float gimbalRange = 10f;
-
-    [KSPField]
-    public float gimbalRangeXP = -1f;   // +X travel (deg); < 0 => falls back to gimbalRange
-
-    [KSPField]
-    public float gimbalRangeXN = -1f;   // -X travel (deg); < 0 => falls back to gimbalRangeXP
-
-    [KSPField]
-    public float gimbalRangeYP = -1f;   // +Y travel (deg); < 0 => falls back to gimbalRange
-
-    [KSPField]
-    public float gimbalRangeYN = -1f;   // -Y travel (deg); < 0 => falls back to gimbalRangeYP
+    [KSPField] public float gimbalRange = 10f;
+    [KSPField] public float gimbalRangeXP = -1f; // +X (deg)
+    [KSPField] public float gimbalRangeXN = -1f; // -X (deg)
+    [KSPField] public float gimbalRangeYP = -1f; // +Y (deg)
+    [KSPField] public float gimbalRangeYN = -1f; // -Y (deg)
 
     [KSPField]
     public float minRollOffset = 0.1f;  // min lateral offset (m) before roll authority is counted
@@ -71,7 +64,9 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     [KSPField(isPersistant = true)]
     public bool gimbalActive;
 
-    // ---- Runtime state ----
+    #endregion
+
+    #region Variables
 
     public List<Transform> gimbalTransforms;
     public List<Quaternion> initRots;
@@ -89,7 +84,9 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
     private const float Probe = 1f;        // small probe angle (deg) to measure gimbal sensitivity
     private const float Eps = 1e-6f;
 
-    // ---------------------------------------------------------------- Actions / events ----
+    #endregion
+
+    #region Actions and Events
 
     [KSPAction("#autoLOC_6001385")]
     public void ToggleAction(KSPActionParam param) => gimbalLock = !gimbalLock;
@@ -116,9 +113,12 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         UpdateToggles();
     }
 
-    // ---------------------------------------------------------------- Lifecycle ----
+    #endregion
 
-    public override void OnLoad(ConfigNode node) => EnsureRanges();
+    #region Lifecycle
+
+    public override void OnLoad(ConfigNode node) =>
+        EnsureRanges();
 
     public override void OnStart(StartState state)
     {
@@ -142,49 +142,10 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         UpdateToggles();
     }
 
-    private void EnsureRanges()
-    {
-        if (gimbalRangeXP < 0f) gimbalRangeXP = gimbalRange;
-        if (gimbalRangeYP < 0f) gimbalRangeYP = gimbalRange;
-        if (gimbalRangeXN < 0f) gimbalRangeXN = gimbalRangeXP;
-        if (gimbalRangeYN < 0f) gimbalRangeYN = gimbalRangeYP;
-    }
-
-    private bool AnyEngineIgnited()
-    {
-        if (engines == null) return false;
-        for (int i = 0; i < engines.Count; i++)
-            if (engines[i].EngineIgnited)
-                return true;
-        return false;
-    }
-
-    // Sync the per-axis enable-toggle visibility (and the "Show Axis Toggles" button's label)
-    // with current state. Call after anything that flips showToggles, currentShowToggles, or
-    // moduleIsEnabled.
-    public void UpdateToggles()
-    {
-        bool show = showToggles && currentShowToggles && moduleIsEnabled;
-
-        Fields[nameof(enableYaw)].guiActive = show;
-        Fields[nameof(enableYaw)].guiActiveEditor = show;
-        Fields[nameof(enablePitch)].guiActive = show;
-        Fields[nameof(enablePitch)].guiActiveEditor = show;
-        Fields[nameof(enableRoll)].guiActive = show;
-        Fields[nameof(enableRoll)].guiActiveEditor = show;
-
-        BaseEvent ev = Events[nameof(ToggleToggles)];
-        ev.guiActive = showToggles && moduleIsEnabled;
-        ev.guiActiveEditor = showToggles && moduleIsEnabled;
-        ev.guiName = Localizer.Format(currentShowToggles ? "#autoLOC_221352" : "#autoLOC_7000023");
-    }
-
-    // ---------------------------------------------------------------- Actuation ----
-
     public void FixedUpdate()
     {
         if (!HighLogic.LoadedSceneIsFlight || !moduleIsEnabled
-            || vessel == null || vessel.ReferenceTransform == null 
+            || vessel == null || vessel.ReferenceTransform == null
             || gimbalTransforms == null)
             return;
 
@@ -246,6 +207,53 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
                 * Quaternion.AngleAxis(angles.x, Vector3.right)
                 * Quaternion.AngleAxis(angles.y, Vector3.up);
         }
+    }
+
+
+    #endregion
+
+    #region Functions
+
+    private void EnsureRanges()
+    {
+        if (gimbalRangeXP < 0f) gimbalRangeXP = gimbalRange;
+        if (gimbalRangeYP < 0f) gimbalRangeYP = gimbalRange;
+        if (gimbalRangeXN < 0f) gimbalRangeXN = gimbalRangeXP;
+        if (gimbalRangeYN < 0f) gimbalRangeYN = gimbalRangeYP;
+    }
+
+    private bool AnyEngineIgnited()
+    {
+        if (engines == null)
+            return false;
+
+        for (int i = 0; i < engines.Count; i++)
+            if (engines[i].EngineIgnited)
+                return true;
+
+        return false;
+    }
+
+    // Sync the per-axis enable-toggle visibility (and the "Show Axis Toggles" button's label)
+    // with current state. Call after anything that flips showToggles, currentShowToggles, or
+    // moduleIsEnabled.
+    public void UpdateToggles()
+    {
+        bool show = showToggles && currentShowToggles && moduleIsEnabled;
+
+        Fields[nameof(enableYaw)].guiActive = show;
+        Fields[nameof(enableYaw)].guiActiveEditor = show;
+
+        Fields[nameof(enablePitch)].guiActive = show;
+        Fields[nameof(enablePitch)].guiActiveEditor = show;
+
+        Fields[nameof(enableRoll)].guiActive = show;
+        Fields[nameof(enableRoll)].guiActiveEditor = show;
+
+        BaseEvent ev = Events[nameof(ToggleToggles)];
+        ev.guiActive = showToggles && moduleIsEnabled;
+        ev.guiActiveEditor = showToggles && moduleIsEnabled;
+        ev.guiName = Localizer.Format(currentShowToggles ? "#autoLOC_221352" : "#autoLOC_7000023");
     }
 
     // Returns gimbal angles (deg) about local X and local Y that best assist desiredDir,
@@ -387,4 +395,6 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
             engineMultsList.Add(feeders);
         }
     }
+
+    #endregion
 }
