@@ -19,4 +19,40 @@ internal static class Rotations
         else if (deg < -180f) deg += 360f;
         return deg;
     }
+
+    public static Quaternion SmoothDamp(Quaternion rot, Quaternion target, ref Vector4 deriv, float time, float maxSpeed, float deltaTime)
+    {
+        if (deltaTime < Mathf.Epsilon)
+            return rot;
+
+        // account for double-cover
+        float Dot = Quaternion.Dot(rot, target);
+
+        float Multi = Dot > 0f ? 1f : -1f;
+        target.x *= Multi;
+        target.y *= Multi;
+        target.z *= Multi;
+        target.w *= Multi;
+
+        // smooth damp (nlerp approx)
+        Vector4 Result = new(
+            Mathf.SmoothDamp(rot.x, target.x, ref deriv.x, time, maxSpeed, deltaTime),
+            Mathf.SmoothDamp(rot.y, target.y, ref deriv.y, time, maxSpeed, deltaTime),
+            Mathf.SmoothDamp(rot.z, target.z, ref deriv.z, time, maxSpeed, deltaTime),
+            Mathf.SmoothDamp(rot.w, target.w, ref deriv.w, time, maxSpeed, deltaTime)
+        );
+
+        Result.Normalize();
+
+        // ensure deriv is tangent
+        Vector4 derivError = Vector4.Project(deriv, Result);
+
+        deriv.x -= derivError.x;
+        deriv.y -= derivError.y;
+        deriv.z -= derivError.z;
+        deriv.w -= derivError.w;
+
+        return new Quaternion(Result.x, Result.y, Result.z, Result.w);
+    }
+
 }

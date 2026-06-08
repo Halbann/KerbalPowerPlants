@@ -4,21 +4,11 @@ using UnityEngine;
 
 namespace KerbalPowerPlants;
 
-// Orchestrates STOVL deploy/retract on a multi-mode jet engine.
-//
-// Managed modules (matched out of the part's MODULE list at OnStart):
-//   - ModuleGimbal entries selected by gimbalTransformName. Enabled only
-//     when fully deployed. Their initRots are re-captured from the current
-//     pose at deploy-end so the pitch gimbal pivots around the deployed
-//     orientation, not the closed one ModuleGimbal cached at its OnStart.
-//
-//   - FXModuleConstrainAnimation entries selected by animationName. Active
-//     during deploy/retract motion and while fully deployed, so bone-driven
-//     follower animations track the door swivel throughout.
 public class ModuleSTOVLToggle : PartModule
 {
-    // Config fields.
-    [KSPField] public string animationName = "OpenClose";
+    public enum Axis { X, Y, Z }
+
+    [KSPField] public string animationName = string.Empty;
     [KSPField] public int animationLayer = 1;
     [KSPField] public bool instantInEditor = true;
 
@@ -30,6 +20,13 @@ public class ModuleSTOVLToggle : PartModule
     [KSPField] public string managedGimbalTransforms = string.Empty;
     [KSPField] public string managedConstraintAnimations = string.Empty;
 
+    [KSPField] public string swivelTransformName = string.Empty;
+    [KSPField] public Axis swivelAxis = Axis.X;
+    [KSPField] public float swivelDeployAngle = -90f;
+
+    [KSPField] public float swivelTime = 3f;
+    [KSPField] public float clearance = 0.8f;
+
     [KSPField(isPersistant = true)] public bool isDeployed = false;
 
     [KSPField(guiActive = true, guiActiveEditor = false, guiName = "Swivel")]
@@ -40,12 +37,25 @@ public class ModuleSTOVLToggle : PartModule
     private const string DeployedText = "Engaged";
     private const string RetractingText = "Disengaging";
 
+    private enum Phase { Stowed, Deploying, Deployed, Retracting }
+
     private Animation anim;
     private AnimationState clipState;
     private readonly List<ModuleGimbalTorque> managedGimbals = [];
     private readonly List<FXModuleConstrainAnimation> managedConstraints = [];
     private MultiModeEngine multimode;
-    private bool isMoving;
+
+    private Transform swivelTransform;
+    private Quaternion swivelStowedRot;
+    private Quaternion swivelDeployedRot;
+
+    private Phase phase;
+    private float phaseTime;
+    private float swivelProgress;
+    private bool swivelMoving;
+    private Quaternion swivelFrom;
+    private Quaternion swivelTo;
+    private bool doorsReversing;
 
     [KSPEvent(guiActive = true, guiActiveEditor = true, guiActiveUnfocused = false, guiName = "Engage Swivel")]
     public void Toggle()
@@ -66,6 +76,17 @@ public class ModuleSTOVLToggle : PartModule
         if (!FindAnimation())
             return;
 
+        swivelTransform = part.FindModelTransform(swivelTransformName);
+        if (swivelTransform == null)
+        {
+            Debug.LogError($"[KerbalPowerPlants]: ModuleSTOVLToggle on '{part.name}': swivel transform '{swivelTransformName}' not found");
+            enabled = false;
+            return;
+        }
+
+        swivelStowedRot = swivelTransform.localRotation;
+        swivelDeployedRot = swivelStowedRot * Quaternion.AngleAxis(swivelDeployAngle, AxisVector(swivelAxis));
+
         FindManagedModules();
 
         foreach (var animConstraint in managedConstraints)
@@ -76,8 +97,17 @@ public class ModuleSTOVLToggle : PartModule
 
     private void Update()
     {
-        if (isMoving && !anim.IsPlaying(animationName))
-            FinishMove();
+        switch (phase)
+        {
+            case Phase.Deploying:
+                UpdateDeploying();
+                break;
+            case Phase.Retracting:
+                UpdateRetracting();
+                break;
+            default:
+                break;
+        }
     }
 
     private void OnDestroy()
@@ -87,6 +117,144 @@ public class ModuleSTOVLToggle : PartModule
     }
 
     #endregion
+
+    #region Transition
+
+    public void SetDeployed(bool deployed, bool instant)
+    {
+        isDeployed = deployed;
+        ApplyState(deployed, instant);
+    }
+
+    private void ApplyState(bool deployed, bool instant)
+    {
+        Events[nameof(Toggle)].guiName = deployed ? retractText : deployText;
+
+        if (deployed)
+        {
+            AllowAfterburner(false);
+            SetConstraintsEnabled(true);
+
+            if (instant)
+            {
+                SampleDoors(1f);
+                swivelMoving = false;
+                swivelTransform.localRotation = swivelDeployedRot;
+                CaptureGimbalRest();
+                EnableGimbals(true);
+                phase = Phase.Deployed;
+                status = DeployedText;
+            }
+            else
+            {
+                EnableGimbals(false);
+                PlayClip(forward: true);
+                phaseTime = 0f;
+                swivelMoving = false;
+                phase = Phase.Deploying;
+                status = DeployingText;
+            }
+        }
+        else
+        {
+            EnableGimbals(false);
+            SetConstraintsEnabled(true);
+
+            if (instant)
+            {
+                SampleDoors(0f);
+                swivelMoving = false;
+                swivelTransform.localRotation = swivelStowedRot;
+                SetConstraintsEnabled(false);
+                phase = Phase.Stowed;
+                status = StowedText;
+                AllowAfterburner(true);
+            }
+            else
+            {
+                clipState.speed = 0f;
+                phaseTime = 0f;
+                doorsReversing = false;
+                BeginSwivel(swivelStowedRot);
+                phase = Phase.Retracting;
+                status = RetractingText;
+            }
+        }
+    }
+
+    private void UpdateDeploying()
+    {
+        phaseTime += Time.deltaTime;
+
+        if (!swivelMoving && phaseTime >= clearance)
+            BeginSwivel(swivelDeployedRot);
+
+        if (swivelMoving)
+        {
+            swivelProgress = Mathf.MoveTowards(swivelProgress, 1f, Time.deltaTime / Mathf.Max(swivelTime, 1e-4f));
+            ApplySwivel();
+        }
+
+        bool doorsDone = !anim.IsPlaying(animationName);
+        bool swivelDone = swivelMoving && swivelProgress >= 1f;
+        if (doorsDone && swivelDone)
+            EnterDeployed();
+    }
+
+    private void UpdateRetracting()
+    {
+        phaseTime += Time.deltaTime;
+
+        swivelProgress = Mathf.MoveTowards(swivelProgress, 1f, Time.deltaTime / Mathf.Max(swivelTime, 1e-4f));
+        ApplySwivel();
+
+        if (!doorsReversing && phaseTime >= clearance)
+        {
+            PlayClip(forward: false);
+            doorsReversing = true;
+        }
+
+        bool doorsDone = doorsReversing && !anim.IsPlaying(animationName);
+        bool swivelDone = swivelProgress >= 1f;
+        if (doorsDone && swivelDone)
+            EnterStowed();
+    }
+
+    private void EnterDeployed()
+    {
+        swivelMoving = false;
+        swivelTransform.localRotation = swivelDeployedRot;
+        CaptureGimbalRest();
+        EnableGimbals(true);
+        phase = Phase.Deployed;
+        status = DeployedText;
+    }
+
+    private void EnterStowed()
+    {
+        swivelMoving = false;
+        swivelTransform.localRotation = swivelStowedRot;
+        SetConstraintsEnabled(false);
+        phase = Phase.Stowed;
+        status = StowedText;
+        AllowAfterburner(true);
+    }
+
+    private void BeginSwivel(Quaternion to)
+    {
+        swivelFrom = swivelTransform.localRotation;
+        swivelTo = to;
+        swivelProgress = 0f;
+        swivelMoving = true;
+    }
+
+    private void ApplySwivel() =>
+        swivelTransform.localRotation = Quaternion.Slerp(
+            swivelFrom, swivelTo, Mathf.SmoothStep(0f, 1f, swivelProgress));
+
+    #endregion
+
+    #region Doors
 
     private bool FindAnimation()
     {
@@ -110,81 +278,7 @@ public class ModuleSTOVLToggle : PartModule
         return true;
     }
 
-    public void SetDeployed(bool deployed, bool instant)
-    {
-        isDeployed = deployed;
-        ApplyState(deployed, instant);
-    }
-
-    private void ApplyState(bool deployed, bool instant)
-    {
-        Events[nameof(Toggle)].guiName = deployed ? retractText : deployText;
-
-        if (deployed)
-        {
-            if (instant)
-            {
-                SnapPose(1f);
-                SetConstraintsEnabled(true);
-                CaptureGimbalRest();
-                EnableGimbals(true);
-                isMoving = false;
-                status = DeployedText;
-            }
-            else
-            {
-                EnableGimbals(false);
-                SetConstraintsEnabled(true);
-                PlayClip(forward: true);
-                isMoving = true;
-                status = DeployingText;
-            }
-
-            AllowAfterburner(false);
-        }
-        else
-        {
-            SnapGimbalsToRest();
-            EnableGimbals(false);
-
-            if (instant)
-            {
-                SnapPose(0f);
-                SetConstraintsEnabled(false);
-                isMoving = false;
-                status = StowedText;
-                AllowAfterburner(true);
-            }
-            else
-            {
-                SetConstraintsEnabled(true);
-                PlayClip(forward: false);
-                isMoving = true;
-                status = RetractingText;
-            }
-        }
-    }
-
-    private void FinishMove()
-    {
-        isMoving = false;
-        if (isDeployed)
-        {
-            CaptureGimbalRest();
-            EnableGimbals(true);
-            status = DeployedText;
-        }
-        else
-        {
-            SetConstraintsEnabled(false);
-            status = StowedText;
-            AllowAfterburner(true);
-        }
-    }
-
-    // Apply a single pose without leaving the clip in the playing list, so
-    // nothing keeps overwriting the transforms after this returns.
-    private void SnapPose(float normalizedT)
+    private void SampleDoors(float normalizedT)
     {
         clipState.enabled = true;
         clipState.weight = 1f;
@@ -195,18 +289,19 @@ public class ModuleSTOVLToggle : PartModule
         anim.Stop(animationName);
     }
 
-    // Start (or resume) playback in the chosen direction. WrapMode.Once stops
-    // the clip on its own at each end; Update polls IsPlaying to react.
     private void PlayClip(bool forward)
     {
         clipState.enabled = true;
         clipState.weight = 1f;
         clipState.speed = forward ? 1f : -1f;
-        // If we're sitting at the wrong end, rewind to the start of the move.
         if (forward && clipState.normalizedTime >= 1f) clipState.normalizedTime = 0f;
         else if (!forward && clipState.normalizedTime <= 0f) clipState.normalizedTime = 1f;
         anim.Play(animationName);
     }
+
+    #endregion
+
+    #region Managed modules
 
     private void FindManagedModules()
     {
@@ -247,8 +342,6 @@ public class ModuleSTOVLToggle : PartModule
         {
             var c = managedConstraints[i];
             c.enabled = en;
-            // If we just re-enabled, force an immediate sample so the bones
-            // pick up any pose change we made this same frame (e.g. SnapPose).
             if (en) c.SampleNow();
         }
     }
@@ -262,32 +355,15 @@ public class ModuleSTOVLToggle : PartModule
         }
     }
 
-    private void SnapGimbalsToRest()
-    {
-        for (int i = 0; i < managedGimbals.Count; i++)
-        {
-            var g = managedGimbals[i];
-            for (int j = 0; j < g.gimbalTransforms.Count; j++)
-                g.gimbalTransforms[j].localRotation = g.initRots[j];
-        }
-    }
-
-    // Re-cache each managed gimbal's rest pose from the current target pose.
-    // Required after deploy because ModuleGimbal.OnStart cached the closed
-    // (pre-animation) pose, so without this the pitch gimbal would pivot
-    // around the wrong rotation.
     private void CaptureGimbalRest()
     {
         for (int i = 0; i < managedGimbals.Count; i++)
-        {
-            var g = managedGimbals[i];
-            for (int j = 0; j < g.gimbalTransforms.Count; j++)
-            {
-                g.initRots[j] = g.gimbalTransforms[j].localRotation;
-                g.currentAngles[j] = Vector3.zero;
-            }
-        }
+            managedGimbals[i].CaptureRest();
     }
+
+    #endregion
+
+    #region Elevation remap
 
     static double Clamp(double v, double min, double max) =>
         v < min ? min : v > max ? max : v;
@@ -314,6 +390,10 @@ public class ModuleSTOVLToggle : PartModule
         return Math.Acos(Clamp(x, -1.0, 1.0)) / Math.PI;
     }
 
+    #endregion
+
+    #region Afterburner interlock
+
     void AllowAfterburner(bool allow)
     {
         if (multimode == null)
@@ -331,4 +411,14 @@ public class ModuleSTOVLToggle : PartModule
         if (multimode.primaryEngine != null && multimode.secondaryEngine != null)
             multimode.loadFailure = !allow;
     }
+
+    #endregion
+
+    private static Vector3 AxisVector(Axis a) => a switch
+    {
+        Axis.X => Vector3.right,
+        Axis.Y => Vector3.up,
+        Axis.Z => Vector3.forward,
+        _ => Vector3.right,
+    };
 }
