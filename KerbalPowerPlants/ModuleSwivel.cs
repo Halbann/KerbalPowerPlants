@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace KerbalPowerPlants;
 
-public class ModuleSTOVLToggle : PartModule
+public class ModuleSwivel : PartModule
 {
     public enum Axis { X, Y, Z }
 
@@ -79,7 +79,7 @@ public class ModuleSTOVLToggle : PartModule
         swivelTransform = part.FindModelTransform(swivelTransformName);
         if (swivelTransform == null)
         {
-            Debug.LogError($"[KerbalPowerPlants]: ModuleSTOVLToggle on '{part.name}': swivel transform '{swivelTransformName}' not found");
+            Debug.LogError($"[KerbalPowerPlants]: ModuleSwivel on '{part.name}': swivel transform '{swivelTransformName}' not found");
             enabled = false;
             return;
         }
@@ -261,7 +261,7 @@ public class ModuleSTOVLToggle : PartModule
         var animators = part.FindModelAnimators(animationName);
         if (animators.Length == 0)
         {
-            Debug.LogError($"[KerbalPowerPlants]: ModuleSTOVLToggle on '{part.name}': animation '{animationName}' not found");
+            Debug.LogError($"[KerbalPowerPlants]: ModuleSwivel on '{part.name}': animation '{animationName}' not found");
             enabled = false;
             return false;
         }
@@ -269,7 +269,7 @@ public class ModuleSTOVLToggle : PartModule
         clipState = anim[animationName];
         if (clipState == null)
         {
-            Debug.LogError($"[KerbalPowerPlants]: ModuleSTOVLToggle on '{part.name}': clip '{animationName}' missing from Animation component");
+            Debug.LogError($"[KerbalPowerPlants]: ModuleSwivel on '{part.name}': clip '{animationName}' missing from Animation component");
             enabled = false;
             return false;
         }
