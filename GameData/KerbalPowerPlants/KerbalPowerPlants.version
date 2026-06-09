@@ -1,7 +1,9 @@
 {
   "NAME": "KerbalPowerPlants",
-  "VERSION": "0.1.0.0",
+  "URL": "https://raw.githubusercontent.com/Halbann/KerbalPowerPlants/main/GameData/KerbalPowerPlants/KerbalPowerPlants.version",
+  "DOWNLOAD": "https://github.com/Halbann/KerbalPowerPlants/releases",
   "KSP_VERSION": "1.12",
   "KSP_VERSION_MIN": "1.8",
-  "KSP_VERSION_MAX": "1.12"
+  "KSP_VERSION_MAX": "1.12",
+  "VERSION": "0.1.0.0"
 }

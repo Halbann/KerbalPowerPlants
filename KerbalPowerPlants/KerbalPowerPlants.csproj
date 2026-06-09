@@ -23,7 +23,7 @@
 	</ItemGroup>
 	<!-- Version Files -->
 	<ItemGroup>
-		<KSPVersionFile Include="KerbalPowerPlants.version">
+		<KSPVersionFile Include="$(RepoRoot)KerbalPowerPlants.version">
 			<Destination>$(KSPBT_ModRoot)/KerbalPowerPlants.version</Destination>
 		</KSPVersionFile>
 	</ItemGroup>
