@@ -4,7 +4,6 @@
 🟥 No Longer Planned | ⬜ Definite | ⬛  Maybe
 
 * 🟨 J-250 "Leopard" Afterburning Turbofan
-* 🟨 J-X5 "Jolt" Afterburning Turbofan
 * 🟨 J-28 "Tiger" Afterburning Turbofan
 * 🟨 J-68 "Pendragon" Afterburning Turbojet
 * 🟨 J-9 "Grumble" Turbofan
@@ -12,3 +11,4 @@
 * 🟦 Inline Lift Fan
 * ✅ J-410 "Jaguar" Afterburning Turbofan
 * ✅ J-U16 “Zephyr” Unducted Turbofan
+* ✅ J-X5 "Jolt" Afterburning Turbofan
