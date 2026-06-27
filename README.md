@@ -3,10 +3,10 @@
 
 🟥 No Longer Planned | ⬜ Definite | ⬛  Maybe
 
-* 🟨 J-250 "Leopard" Afterburning Turbofan
 * 🟨 J-28 "Tiger" Afterburning Turbofan
 * 🟨 J-68 "Pendragon" Afterburning Turbojet
 * 🟨 J-9 "Grumble" Turbofan
+* 🟦 J-250 "Leopard" Afterburning Turbofan
 * 🟦 J-S485 "Puma" Afterburning Turbofan
 * 🟦 Inline Lift Fan
 * ✅ J-410 "Jaguar" Afterburning Turbofan
