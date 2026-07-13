@@ -23,19 +23,22 @@ public class FXModuleConstrainAnimation : PartModule
     [KSPField] public float smoothAccel = 0f;
     [KSPField] public float smoothMaxSpeed = Mathf.Infinity;
 
-    // Private fields.
     private Transform target;
     private AnimUtils.Sampler anim;
     private Quaternion initRot;
-    private SymmetricSmoothDamp damper;
+
+    // Exposed so a caller can rewrite the smoothed state.
+    public SymmetricSmoothDamp damper;
 
     // Modifiers.
     public List<Func<float, float>> modifiers = [];
+    public bool modifiersPostSmoothing = false;
 
     public bool Settled => anim == null || damper.Settled;
 
-    // Smoothed position (normalized, post-modifiers).
-    public float Current => damper.current;
+    // Last sampled clip position (normalized progress, post-modifiers).
+    private float sampled;
+    public float Current => sampled;
 
     #region Lifetime
 
@@ -96,32 +99,30 @@ public class FXModuleConstrainAnimation : PartModule
         if (anim == null)
             return;
 
-        float t = TargetT();
+        float raw = Mathf.InverseLerp(angleMin, angleMax, ReadAngle());
 
-        if (snap)
-            damper.Reset(t);
-        else
-        {
-            damper.Settings(smoothAccel, smoothMaxSpeed);
-            t = damper.UpdateTo(t, Time.deltaTime);
-        }
+        float t = modifiersPostSmoothing
+            ? ApplyModifiers(Step(raw, snap))
+            : Step(ApplyModifiers(raw), snap);
 
-        // todo: switch between modifier-space and progress-space.
-
-        // Remap from elevation to progress after smoothing,
-        // so smoothing happens in elevation space rather than progress-space.
-        //foreach (var mod in modifiers)
-        //    if (mod != null)
-        //        t = mod(t);
-
-        anim.Sample(Mathf.Clamp01(t));
+        sampled = Mathf.Clamp01(t);
+        anim.Sample(sampled);
     }
 
-    private float TargetT()
+    private float Step(float value, bool snap)
     {
-        float angle = ReadAngle();
-        float t = Mathf.InverseLerp(angleMin, angleMax, angle);
+        if (snap)
+        {
+            damper.Reset(value);
+            return value;
+        }
 
+        damper.Settings(smoothAccel, smoothMaxSpeed);
+        return damper.UpdateTo(value, Time.deltaTime);
+    }        
+
+    private float ApplyModifiers(float t)
+    {
         foreach (var mod in modifiers)
             if (mod != null)
                 t = mod(t);

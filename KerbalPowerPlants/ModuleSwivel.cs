@@ -65,6 +65,7 @@ public class ModuleSwivel : PartModule
     [KSPField(isPersistant = true)] public bool deploy = false;
     bool moving = false;
     bool settleArmed = false;
+    bool modifierSpace = false;
 
     // Runtime.
     private Transform swivelProxy;
@@ -133,6 +134,8 @@ public class ModuleSwivel : PartModule
         if (elevationMap == ElevationMap.TripleBearing)
             constraint?.modifiers.Add(ElevationRemap);
 
+        ApplySmoothingSpace();
+
         // moduleIsEnabled defaults true, so a stowed load must be disabled explicitly.
         EnableGimbal(deploy);
 
@@ -175,6 +178,7 @@ public class ModuleSwivel : PartModule
             {
                 moving = false;
                 UpdateText();
+                ApplySmoothingSpace();
 
                 if (!deploy)
                     SetAfterburnerAllowed(true);
@@ -200,9 +204,31 @@ public class ModuleSwivel : PartModule
 
         EnableGimbal(deploy);
         UpdateText();
+        ApplySmoothingSpace();
 
         if (deploy)
             SetAfterburnerAllowed(false);
+    }
+
+    // Smooth in progress space during transitions, in modifier space once deployed and
+    // settled. Reproject the damper across the change so its output has no seam.
+    private void ApplySmoothingSpace()
+    {
+        if (constraint == null || elevationMap != ElevationMap.TripleBearing)
+            return;
+
+        bool want = deploy && !moving;
+        if (want == modifierSpace)
+            return;
+
+        float value = constraint.damper.current;
+        float slope = want ? ElevationUnmapSlope(value) : ElevationRemapSlope(value);
+        float velocity = slope * constraint.damper.velocity;
+
+        constraint.damper.current = want ? ElevationUnmap(value) : ElevationRemap(value);
+        constraint.damper.velocity = float.IsNaN(velocity) || float.IsInfinity(velocity) ? 0f : velocity;
+        constraint.modifiersPostSmoothing = want;
+        modifierSpace = want;
     }
 
     // Doors follow the deploy command, held above a floor by the swivel's actual travel
@@ -270,8 +296,12 @@ public class ModuleSwivel : PartModule
     // for progress p. Maps the linear sweep fraction to true bearing travel.
     private static readonly double K = (2.0 * Math.Sqrt(2.0) - 3.0) / 4.0;
 
+    // Normalized modifier interface: elevation fraction [0, 1] <-> progress [0, 1].
     private float ElevationRemap(float t) =>
         (float)ProgressForElevation(Mathf.Lerp(90f, 0f, t));
+
+    private float ElevationUnmap(float p) =>
+        Mathf.InverseLerp(90f, 0f, (float)ElevationForProgress(p));
 
     private static double ProgressForElevation(double deg)
     {
@@ -281,6 +311,24 @@ public class ModuleSwivel : PartModule
         double x = (-b - Math.Sqrt(disc)) / (2.0 * a);
         return Math.Acos(Clamp(x, -1.0, 1.0)) / Math.PI;
     }
+
+    private static double ElevationForProgress(double p)
+    {
+        double x = Math.Cos(Clamp(p, 0.0, 1.0) * Math.PI);
+        double s = K * (1.0 - x * x) + 0.5 * x + 0.5;
+        return Math.Asin(Clamp(s, -1.0, 1.0)) * (180.0 / Math.PI);
+    }
+
+    // Slopes at the switch instant, so the reprojection preserves the damper velocity.
+    private float ElevationRemapSlope(float t)
+    {
+        const float h = 1e-3f;
+        float lo = Mathf.Max(0f, t - h), hi = Mathf.Min(1f, t + h);
+        return (ElevationRemap(hi) - ElevationRemap(lo)) / (hi - lo);
+    }
+
+    private float ElevationUnmapSlope(float p) =>
+        1f / ElevationRemapSlope(ElevationUnmap(p));
 
     private static double Clamp(double v, double min, double max) =>
         v < min ? min : v > max ? max : v;
