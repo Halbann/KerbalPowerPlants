@@ -1,6 +1,6 @@
-using UnityEngine;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace KerbalPowerPlants;
 
@@ -19,14 +19,23 @@ public class FXModuleConstrainAnimation : PartModule
     [KSPField] public float angleMax = 0f;
     [KSPField] public int animationLayer = 5;
 
+    // Smoothing on the normalized clip time. accel <= 0 disables (snaps).
+    [KSPField] public float smoothAccel = 0f;
+    [KSPField] public float smoothMaxSpeed = Mathf.Infinity;
+
     // Private fields.
     private Transform target;
-    private Animation animator;
-    private AnimationState clipState;
+    private AnimUtils.Sampler anim;
     private Quaternion initRot;
+    private SymmetricSmoothDamp damper;
 
-    // Public fields.
+    // Modifiers.
     public List<Func<float, float>> modifiers = [];
+
+    public bool Settled => anim == null || damper.Settled;
+
+    // Smoothed position (normalized, post-modifiers).
+    public float Current => damper.current;
 
     #region Lifetime
 
@@ -39,48 +48,22 @@ public class FXModuleConstrainAnimation : PartModule
         target = part.FindModelTransform(targetName);
         if (target == null)
         {
-            ErrorAndDisable($"target transform '{targetName}' not found");
+            this.ErrorAndDisable($"target transform '{targetName}' not found");
             return;
         }
 
-        // Cache the authored pose so we can extract per-axis twist relative to it. Relies on
-        // this module's OnStart running before anything else mutates target.localRotation; the
-        // orchestrator is listed after us in the cfg to keep that invariant.
+        // Cache the authored pose so we can extract per-axis twist relative to it.
         initRot = target.localRotation;
 
-        // Find the animator component.
-        var animators = part.FindModelAnimators(animationName);
-        if (animators.Length == 0)
+        anim = AnimUtils.CreateSampler(part, animationName, animationLayer);
+        if (anim == null)
         {
-            ErrorAndDisable($"animation '{animationName}' not found");
+            this.ErrorAndDisable($"failed to create animation sampler for '{animationName}'");
             return;
         }
 
-        animator = animators[0];
-
-        // Find the animation clip.
-        clipState = animator[animationName];
-        if (clipState == null)
-        {
-            ErrorAndDisable($"clip '{animationName}' missing from Animation component");
-            return;
-        }
-
-        clipState.layer = animationLayer;
-        clipState.wrapMode = WrapMode.Once;
-
-        // OnEnable fires before OnStart on first activation and no-ops because
-        // anim is still null. Now that the refs are ready, start the clip.
-        if (enabled)
-            StartSampling();
-    }
-
-    protected void OnEnable()
-    {
-        if (!SceneValid())
-            return;
-
-        StartSampling();
+        damper = new SymmetricSmoothDamp(0, smoothAccel, smoothMaxSpeed);
+        Sample(snap: true);
     }
 
     protected void OnDisable()
@@ -88,8 +71,7 @@ public class FXModuleConstrainAnimation : PartModule
         if (!SceneValid())
             return;
 
-        // Final sample so bones land on the current target angle, then stop.
-        SampleNow();
+        Sample(snap: true);
     }
 
     protected void LateUpdate()
@@ -97,7 +79,7 @@ public class FXModuleConstrainAnimation : PartModule
         if (!SceneValid())
             return;
 
-        SampleNow();
+        Sample();
     }
 
     #endregion
@@ -107,37 +89,44 @@ public class FXModuleConstrainAnimation : PartModule
     private bool SceneValid() =>
         HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight;
 
-    private void ErrorAndDisable(string message)
+    // Ease the clip time toward the target angle.
+    public void Sample(bool snap = false)
     {
-        Debug.LogError($"[KerbalPowerPlants]: FXModuleConstrainAnimation on '{part.name}': {message}");
-        enabled = false;
-        return;
-    }
-
-    private void StartSampling()
-    {
-        if (clipState == null || animator == null)
+        // OnEnable/OnDisable can fire before OnStart builds the sampler.
+        if (anim == null)
             return;
 
-        clipState.enabled = true;
-        clipState.weight = 1f;
-        clipState.speed = 0f;
+        float t = TargetT();
 
-        animator.Play(animationName);
+        if (snap)
+            damper.Reset(t);
+        else
+        {
+            damper.Settings(smoothAccel, smoothMaxSpeed);
+            t = damper.UpdateTo(t, Time.deltaTime);
+        }
 
-        SampleNow();
+        // todo: switch between modifier-space and progress-space.
+
+        // Remap from elevation to progress after smoothing,
+        // so smoothing happens in elevation space rather than progress-space.
+        //foreach (var mod in modifiers)
+        //    if (mod != null)
+        //        t = mod(t);
+
+        anim.Sample(Mathf.Clamp01(t));
     }
 
-    public void SampleNow()
+    private float TargetT()
     {
         float angle = ReadAngle();
         float t = Mathf.InverseLerp(angleMin, angleMax, angle);
 
-        foreach (var modifier in modifiers)
-            t = modifier(t);
+        foreach (var mod in modifiers)
+            if (mod != null)
+                t = mod(t);
 
-        clipState.normalizedTime = Mathf.Clamp01(t);
-        animator.Sample();
+        return t;
     }
 
     private float ReadAngle()

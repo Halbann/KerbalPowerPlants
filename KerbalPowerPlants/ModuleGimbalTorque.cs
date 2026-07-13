@@ -222,18 +222,6 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
         if (gimbalRangeYN < 0f) gimbalRangeYN = gimbalRangeYP;
     }
 
-    public void CaptureRest()
-    {
-        if (gimbalTransforms == null) return;
-
-        for (int i = 0; i < gimbalTransforms.Count; i++)
-        {
-            initRots[i] = gimbalTransforms[i].localRotation;
-            currentAngles[i] = Vector3.zero;
-            angleVelocities[i] = Vector3.zero;
-        }
-    }
-
     private bool AnyEngineIgnited()
     {
         if (engines == null)

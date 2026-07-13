@@ -15,11 +15,18 @@ public class FXModuleCopyRotation : PartModule
     [KSPField] public Axis targetAxis = Axis.Z;
     [KSPField] public float gain = 1f;
 
+    // Smoothing on the copied angle (degrees).
+    [KSPField] public float smoothAccel = 0f;
+    [KSPField] public float smoothMaxSpeed = Mathf.Infinity;
+
     // Private fields.
     private Transform source;
     private Transform target;
     private Quaternion sourceInitRot;
     private Quaternion targetInitRot;
+    private SymmetricSmoothDamp damper;
+
+    public bool Settled => source == null || target == null || damper.Settled;
 
     #region Lifetime
 
@@ -31,28 +38,24 @@ public class FXModuleCopyRotation : PartModule
         source = part.FindModelTransform(sourceName);
         if (source == null)
         {
-            ErrorAndDisable($"source transform '{sourceName}' not found");
+            this.ErrorAndDisable($"source transform '{sourceName}' not found");
             return;
         }
 
         target = part.FindModelTransform(targetName);
         if (target == null)
         {
-            ErrorAndDisable($"target transform '{targetName}' not found");
+            this.ErrorAndDisable($"target transform '{targetName}' not found");
             return;
         }
 
-        // Authored poses cached before anyone mutates them. Orchestrator runs after us per cfg.
+        // Authored poses cached before anyone mutates them; nothing writes these
+        // transforms during OnStart.
         sourceInitRot = source.localRotation;
         targetInitRot = target.localRotation;
-    }
 
-    protected void OnEnable()
-    {
-        if (!SceneValid() || source == null || target == null)
-            return;
-
-        Apply();
+        damper = new(0, smoothAccel, smoothMaxSpeed);
+        Sample(snap: true);
     }
 
     protected void OnDisable()
@@ -68,7 +71,7 @@ public class FXModuleCopyRotation : PartModule
         if (!SceneValid())
             return;
 
-        Apply();
+        Sample();
     }
 
     #endregion
@@ -78,21 +81,26 @@ public class FXModuleCopyRotation : PartModule
     private bool SceneValid() =>
         HighLogic.LoadedSceneIsEditor || HighLogic.LoadedSceneIsFlight;
 
-    private void ErrorAndDisable(string message)
-    {
-        Debug.LogError($"[KerbalPowerPlants]: FXModuleCopyRotation on '{part.name}': {message}");
-        enabled = false;
-    }
-
-    public void Apply()
+    // Ease the target angle toward the copied source angle.
+    public void Sample(bool snap = false)
     {
         if (source == null || target == null)
             return;
 
-        Quaternion rel = Quaternion.Inverse(sourceInitRot) * source.localRotation;
-        float sourceAngle = Rotations.TwistAngle(rel, AxisVector(sourceAxis));
+        float a = TargetAngle();
+        if (!snap)
+        {
+            damper.Settings(smoothAccel, smoothMaxSpeed);
+            a = damper.UpdateTo(a, Time.deltaTime);
+        }
 
-        target.localRotation = targetInitRot * Quaternion.AngleAxis(gain * sourceAngle, AxisVector(targetAxis));
+        target.localRotation = targetInitRot * Quaternion.AngleAxis(a, AxisVector(targetAxis));
+    }        
+
+    private float TargetAngle()
+    {
+        Quaternion rel = Quaternion.Inverse(sourceInitRot) * source.localRotation;
+        return gain * Rotations.TwistAngle(rel, AxisVector(sourceAxis));
     }
 
     private static Vector3 AxisVector(Axis a) => a switch

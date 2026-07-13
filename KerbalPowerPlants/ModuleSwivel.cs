@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace KerbalPowerPlants;
@@ -7,397 +7,238 @@ namespace KerbalPowerPlants;
 public class ModuleSwivel : PartModule
 {
     public enum Axis { X, Y, Z }
+    public enum ElevationMap { Linear, TripleBearing }
 
-    [KSPField] public string animationName = string.Empty;
-    [KSPField] public int animationLayer = 1;
+    #region Config
+
     [KSPField] public bool instantInEditor = true;
 
+    [KSPField] public string gimbalProxyTransform = "";
+    [KSPField] public string swivelProxyTransform = "";
+    [KSPField] public bool debugProxies = false;
+
+    [KSPField] public Axis swivelAxis = Axis.X;
+    [KSPField] public Axis rollAxis = Axis.Y;
+    [KSPField] public float deployAngle = -90f;
+
+    [KSPField] public ElevationMap elevationMap = ElevationMap.Linear;
+
+    // Door sequencing, in normalized travel. Doors release the swivel at doorLead when
+    // deploying; the door floor ramps 0..1 as swivel travel crosses [doorWait, doorClear].
+    [KSPField] public float doorLead = 0.75f;
+    [KSPField] public float doorWait = 0.15f;
+    [KSPField] public float doorClear = 0.5f;
+
+    // Door animation. Empty name means no doors.
+    [KSPField] public string doorAnimationName = "";
+    [KSPField] public int doorAnimationLayer = 1;
+    [KSPField] public float doorSmoothAccel = 0f;
+    [KSPField] public float doorSmoothMaxSpeed = Mathf.Infinity;
+
+    // UI Text.
     [KSPField] public string deployText = "Engage Swivel";
     [KSPField] public string retractText = "Disengage Swivel";
     [KSPField] public string actionText = "Toggle Swivel";
     [KSPField] public string statusFieldName = "Swivel";
+    [KSPField] public string statusDeploying = "Engaging...";
+    [KSPField] public string statusDeployed = "Engaged";
+    [KSPField] public string statusRetracting = "Disengaging...";
+    [KSPField] public string statusRetracted = "Disengaged";
 
-    [KSPField] public string managedGimbalTransforms = string.Empty;
-    [KSPField] public string managedConstraintAnimations = string.Empty;
+    #endregion
 
-    [KSPField] public string swivelTransformName = string.Empty;
-    [KSPField] public Axis swivelAxis = Axis.X;
-    [KSPField] public float swivelDeployAngle = -90f;
+    #region PAW, Events and Actions
 
-    [KSPField] public float swivelTime = 3f;
-    [KSPField] public float clearance = 0.8f;
+    [KSPField(guiActive = true, guiActiveEditor = false, guiName = "")]
+    public string status = string.Empty;
 
-    [KSPField(isPersistant = true)] public bool isDeployed = false;
+    [KSPEvent(guiActive = true, guiActiveEditor = true, guiName = "")]
+    public void Toggle() =>
+        SetDeployed(!deploy);
 
-    [KSPField(guiActive = true, guiActiveEditor = false, guiName = "Swivel")]
-    public string status = StowedText;
+    [KSPAction("")]
+    public void ToggleAction(KSPActionParam param) =>
+        Toggle();
 
-    private const string StowedText = "Disengaged";
-    private const string DeployingText = "Engaging";
-    private const string DeployedText = "Engaged";
-    private const string RetractingText = "Disengaging";
+    #endregion
 
-    private enum Phase { Stowed, Deploying, Deployed, Retracting }
+    [KSPField(isPersistant = true)] public bool deploy = false;
+    bool moving = false;
+    bool settleArmed = false;
 
-    private Animation anim;
-    private AnimationState clipState;
-    private readonly List<ModuleGimbalTorque> managedGimbals = [];
-    private readonly List<FXModuleConstrainAnimation> managedConstraints = [];
+    // Runtime.
+    private Transform swivelProxy;
+    private Transform gimbalProxy;
+    private Quaternion swivelRestRot;
+    private Quaternion swivelDeployedRot;
+    private Quaternion gimbalRestRot;
+    private bool abAllowed, abApplied;
+
+    private ModuleGimbalTorque gimbal;
+    private FXModuleConstrainAnimation constraint;
+    private FXModuleCopyRotation copyRotation;
+    private FlooredAnimation doors;
     private MultiModeEngine multimode;
 
-    private Transform swivelTransform;
-    private Quaternion swivelStowedRot;
-    private Quaternion swivelDeployedRot;
-
-    private Phase phase;
-    private float phaseTime;
-    private float swivelProgress;
-    private bool swivelMoving;
-    private Quaternion swivelFrom;
-    private Quaternion swivelTo;
-    private bool doorsReversing;
-
-    [KSPEvent(guiActive = true, guiActiveEditor = true, guiActiveUnfocused = false, guiName = "Engage Swivel")]
-    public void Toggle()
-    {
-        SetDeployed(!isDeployed, instant: HighLogic.LoadedSceneIsEditor && instantInEditor);
-    }
-
-    [KSPAction("Toggle Swivel")]
-    public void ToggleAction(KSPActionParam param) { Toggle(); }
+    private bool Settled => 
+        (constraint?.Settled ?? true) 
+        && (copyRotation?.Settled ?? true)
+        && (doors?.Settled ?? true);
 
     #region Lifetime
 
     public override void OnStart(StartState state)
     {
+        // Set Text.
         Actions[nameof(ToggleAction)].guiName = actionText;
         Fields[nameof(status)].guiName = statusFieldName;
+        UpdateText();
 
-        if (!FindAnimation())
-            return;
-
-        swivelTransform = part.FindModelTransform(swivelTransformName);
-        if (swivelTransform == null)
+        // Find swivel proxy.
+        swivelProxy = part.FindModelTransform(swivelProxyTransform);
+        if (swivelProxy == null)
         {
-            Debug.LogError($"[KerbalPowerPlants]: ModuleSwivel on '{part.name}': swivel transform '{swivelTransformName}' not found");
+            Logger.Error($"{part.name}: swivel proxy '{swivelProxyTransform}' not found");
             enabled = false;
             return;
         }
 
-        swivelStowedRot = swivelTransform.localRotation;
-        swivelDeployedRot = swivelStowedRot * Quaternion.AngleAxis(swivelDeployAngle, AxisVector(swivelAxis));
+        swivelRestRot = swivelProxy.localRotation;
+        swivelDeployedRot = swivelRestRot * Quaternion.AngleAxis(deployAngle, AxisVector(swivelAxis));
 
-        FindManagedModules();
+        // Find gimbal proxy.
+        gimbalProxy = part.FindModelTransform(gimbalProxyTransform);
+        if (gimbalProxy != null)
+            gimbalRestRot = gimbalProxy.localRotation;
 
-        foreach (var animConstraint in managedConstraints)
-            animConstraint?.modifiers.Add(ConstraintModifier);
+        // Find modules.
+        gimbal = part.FindModulesImplementing<ModuleGimbalTorque>().FirstOrDefault();
+        constraint = part.FindModulesImplementing<FXModuleConstrainAnimation>().FirstOrDefault();
+        copyRotation = part.FindModulesImplementing<FXModuleCopyRotation>().FirstOrDefault();
+        multimode = part.FindModulesImplementing<MultiModeEngine>().FirstOrDefault();
 
-        ApplyState(isDeployed, instant: true);
-    }
-
-    private void Update()
-    {
-        switch (phase)
+        // Door animation.
+        if (!string.IsNullOrWhiteSpace(doorAnimationName))
         {
-            case Phase.Deploying:
-                UpdateDeploying();
-                break;
-            case Phase.Retracting:
-                UpdateRetracting();
-                break;
-            default:
-                break;
+            doors = gameObject.AddComponent<FlooredAnimation>();
+            doors.part = part;
+            doors.animationName = doorAnimationName;
+            doors.animationLayer = doorAnimationLayer;
+            doors.smoothAccel = doorSmoothAccel;
+            doors.smoothMaxSpeed = doorSmoothMaxSpeed;
+            doors.open = deploy;
+        }
+
+        // Triple-bearing geometry needs the elevation remap for a linear gimbal response.
+        if (elevationMap == ElevationMap.TripleBearing)
+            constraint?.modifiers.Add(ElevationRemap);
+
+        // moduleIsEnabled defaults true, so a stowed load must be disabled explicitly.
+        EnableGimbal(deploy);
+
+        SetAfterburnerAllowed(!deploy);
+
+        if (!debugProxies)
+        {
+            gimbalProxy.gameObject.SetActive(false);
+            swivelProxy.gameObject.SetActive(false);
         }
     }
 
-    private void OnDestroy()
+    protected void Update()
     {
-        foreach (var animConstraint in managedConstraints)
-            animConstraint?.modifiers.Remove(ConstraintModifier);
-    }
-
-    #endregion
-
-    #region Transition
-
-    public void SetDeployed(bool deployed, bool instant)
-    {
-        isDeployed = deployed;
-        ApplyState(deployed, instant);
-    }
-
-    private void ApplyState(bool deployed, bool instant)
-    {
-        Events[nameof(Toggle)].guiName = deployed ? retractText : deployText;
-
-        if (deployed)
-        {
-            AllowAfterburner(false);
-            SetConstraintsEnabled(true);
-
-            if (instant)
-            {
-                SampleDoors(1f);
-                swivelMoving = false;
-                swivelTransform.localRotation = swivelDeployedRot;
-                CaptureGimbalRest();
-                EnableGimbals(true);
-                phase = Phase.Deployed;
-                status = DeployedText;
-            }
-            else
-            {
-                EnableGimbals(false);
-                PlayClip(forward: true);
-                phaseTime = 0f;
-                swivelMoving = false;
-                phase = Phase.Deploying;
-                status = DeployingText;
-            }
-        }
-        else
-        {
-            EnableGimbals(false);
-            SetConstraintsEnabled(true);
-
-            if (instant)
-            {
-                SampleDoors(0f);
-                swivelMoving = false;
-                swivelTransform.localRotation = swivelStowedRot;
-                SetConstraintsEnabled(false);
-                phase = Phase.Stowed;
-                status = StowedText;
-                AllowAfterburner(true);
-            }
-            else
-            {
-                clipState.speed = 0f;
-                phaseTime = 0f;
-                doorsReversing = false;
-                BeginSwivel(swivelStowedRot);
-                phase = Phase.Retracting;
-                status = RetractingText;
-            }
-        }
-    }
-
-    private void UpdateDeploying()
-    {
-        phaseTime += Time.deltaTime;
-
-        if (!swivelMoving && phaseTime >= clearance)
-            BeginSwivel(swivelDeployedRot);
-
-        if (swivelMoving)
-        {
-            swivelProgress = Mathf.MoveTowards(swivelProgress, 1f, Time.deltaTime / Mathf.Max(swivelTime, 1e-4f));
-            ApplySwivel();
-        }
-
-        bool doorsDone = !anim.IsPlaying(animationName);
-        bool swivelDone = swivelMoving && swivelProgress >= 1f;
-        if (doorsDone && swivelDone)
-            EnterDeployed();
-    }
-
-    private void UpdateRetracting()
-    {
-        phaseTime += Time.deltaTime;
-
-        swivelProgress = Mathf.MoveTowards(swivelProgress, 1f, Time.deltaTime / Mathf.Max(swivelTime, 1e-4f));
-        ApplySwivel();
-
-        if (!doorsReversing && phaseTime >= clearance)
-        {
-            PlayClip(forward: false);
-            doorsReversing = true;
-        }
-
-        bool doorsDone = doorsReversing && !anim.IsPlaying(animationName);
-        bool swivelDone = swivelProgress >= 1f;
-        if (doorsDone && swivelDone)
-            EnterStowed();
-    }
-
-    private void EnterDeployed()
-    {
-        swivelMoving = false;
-        swivelTransform.localRotation = swivelDeployedRot;
-        CaptureGimbalRest();
-        EnableGimbals(true);
-        phase = Phase.Deployed;
-        status = DeployedText;
-    }
-
-    private void EnterStowed()
-    {
-        swivelMoving = false;
-        swivelTransform.localRotation = swivelStowedRot;
-        SetConstraintsEnabled(false);
-        phase = Phase.Stowed;
-        status = StowedText;
-        AllowAfterburner(true);
-    }
-
-    private void BeginSwivel(Quaternion to)
-    {
-        swivelFrom = swivelTransform.localRotation;
-        swivelTo = to;
-        swivelProgress = 0f;
-        swivelMoving = true;
-    }
-
-    private void ApplySwivel() =>
-        swivelTransform.localRotation = Quaternion.Slerp(
-            swivelFrom, swivelTo, Mathf.SmoothStep(0f, 1f, swivelProgress));
-
-    #endregion
-
-    #region Doors
-
-    private bool FindAnimation()
-    {
-        var animators = part.FindModelAnimators(animationName);
-        if (animators.Length == 0)
-        {
-            Debug.LogError($"[KerbalPowerPlants]: ModuleSwivel on '{part.name}': animation '{animationName}' not found");
-            enabled = false;
-            return false;
-        }
-        anim = animators[0];
-        clipState = anim[animationName];
-        if (clipState == null)
-        {
-            Debug.LogError($"[KerbalPowerPlants]: ModuleSwivel on '{part.name}': clip '{animationName}' missing from Animation component");
-            enabled = false;
-            return false;
-        }
-        clipState.layer = animationLayer;
-        clipState.wrapMode = WrapMode.Once;
-        return true;
-    }
-
-    private void SampleDoors(float normalizedT)
-    {
-        clipState.enabled = true;
-        clipState.weight = 1f;
-        clipState.normalizedTime = normalizedT;
-        clipState.speed = 0f;
-        anim.Play(animationName);
-        anim.Sample();
-        anim.Stop(animationName);
-    }
-
-    private void PlayClip(bool forward)
-    {
-        clipState.enabled = true;
-        clipState.weight = 1f;
-        clipState.speed = forward ? 1f : -1f;
-        if (forward && clipState.normalizedTime >= 1f) clipState.normalizedTime = 0f;
-        else if (!forward && clipState.normalizedTime <= 0f) clipState.normalizedTime = 1f;
-        anim.Play(animationName);
-    }
-
-    #endregion
-
-    #region Managed modules
-
-    private void FindManagedModules()
-    {
-        var gimbalNames = ParseCsv(managedGimbalTransforms);
-        var constraintNames = ParseCsv(managedConstraintAnimations);
-
-        for (int i = 0; i < part.Modules.Count; i++)
-        {
-            var m = part.Modules[i];
-            if (m is ModuleGimbalTorque g && gimbalNames.Contains(g.gimbalTransformName))
-                managedGimbals.Add(g);
-            else if (m is FXModuleConstrainAnimation c && constraintNames.Contains(c.animationName))
-                managedConstraints.Add(c);
-            else if (m is MultiModeEngine mm)
-                multimode = mm;
-        }
-    }
-
-    private static HashSet<string> ParseCsv(string csv)
-    {
-        var set = new HashSet<string>(StringComparer.Ordinal);
-
-        if (string.IsNullOrEmpty(csv))
-            return set;
-
-        foreach (var tok in csv.Split(','))
-        {
-            var s = tok.Trim();
-            if (s.Length > 0) set.Add(s);
-        }
-
-        return set;
-    }
-
-    private void SetConstraintsEnabled(bool en)
-    {
-        for (int i = 0; i < managedConstraints.Count; i++)
-        {
-            var c = managedConstraints[i];
-            c.enabled = en;
-            if (en) c.SampleNow();
-        }
-    }
-
-    private void EnableGimbals(bool en)
-    {
-        for (int i = 0; i < managedGimbals.Count; i++)
-        {
-            managedGimbals[i].moduleIsEnabled = en;
-            managedGimbals[i].UpdateToggles();
-        }
-    }
-
-    private void CaptureGimbalRest()
-    {
-        for (int i = 0; i < managedGimbals.Count; i++)
-            managedGimbals[i].CaptureRest();
-    }
-
-    #endregion
-
-    #region Elevation remap
-
-    static double Clamp(double v, double min, double max) =>
-        v < min ? min : v > max ? max : v;
-
-    readonly double K = (2.0 * Math.Sqrt(2.0) - 3.0) / 4.0;
-
-    float ConstraintModifier(float t) =>
-        (float)ProgressForElevation(Mathf.Lerp(90f, 0, t));
-
-    double ElevationForProgress(double t)
-    {
-        t = Clamp(t, 0.0, 1.0);
-        double s = Math.Sin(Math.PI * t);
-        double v = K * s * s + 0.5 * Math.Cos(Math.PI * t) + 0.5;
-        return Math.Asin(Clamp(v, -1.0, 1.0)) * (180.0 / Math.PI);
-    }
-
-    double ProgressForElevation(double deg)
-    {
-        double s = Math.Sin(Clamp(deg, 0.0, 90.0) * (Math.PI / 180.0));
-        double a = K, b = -0.5, cc = -(K + 0.5) + s;
-        double disc = b * b - 4.0 * a * cc;
-        double x = (-b - Math.Sqrt(disc)) / (2.0 * a);
-        return Math.Acos(Clamp(x, -1.0, 1.0)) / Math.PI;
-    }
-
-    #endregion
-
-    #region Afterburner interlock
-
-    void AllowAfterburner(bool allow)
-    {
-        if (multimode == null)
+        if (swivelProxy == null)
             return;
+
+        if (!deploy && !moving)
+            return; // Nothing to do.
+
+        // GimbalProxy never carries the deploy rotation, only deflection from its rest.
+        Quaternion deflection = gimbalProxy != null
+            ? Quaternion.Inverse(gimbalRestRot) * gimbalProxy.localRotation
+            : Quaternion.identity;
+
+        // Doors lead on deploy: the swivel is commanded down only once they're past doorLead.
+        bool commandDeployed = deploy && (doors == null || doors.progress >= doorLead);
+        swivelProxy.localRotation = commandDeployed ? swivelDeployedRot * deflection : swivelRestRot;
+
+        DriveDoors();
+
+        if (moving)
+        {
+            // One frame latch on checking Settled.
+            if (!settleArmed)
+            {
+                settleArmed = true;
+            }
+            else if (Settled)
+            {
+                moving = false;
+                UpdateText();
+
+                if (!deploy)
+                    SetAfterburnerAllowed(true);
+            }
+        }
+    }
+
+    protected void OnDestroy() =>
+        constraint?.modifiers.Remove(ElevationRemap);
+
+    #endregion
+
+    #region Swivel
+
+    public void SetDeployed(bool deploy)
+    {
+        if (this.deploy == deploy)
+            return;
+
+        this.deploy = deploy;
+        moving = true;
+        settleArmed = false;
+
+        EnableGimbal(deploy);
+        UpdateText();
+
+        if (deploy)
+            SetAfterburnerAllowed(false);
+    }
+
+    // Doors follow the deploy command, held above a floor by the swivel's actual travel
+    // so they can never close onto the nozzle; the ramp makes the close trail it down.
+    private void DriveDoors()
+    {
+        if (doors == null)
+            return;
+
+        doors.open = deploy;
+        doors.minProgress = constraint != null
+            ? Mathf.InverseLerp(doorWait, doorClear, constraint.Current)
+            : 0f;
+    }
+
+    private void EnableGimbal(bool on)
+    {
+        if (gimbal == null)
+            return;
+
+        gimbal.moduleIsEnabled = on;
+        gimbal.UpdateToggles();
+
+        if (!on && gimbalProxy != null)
+            gimbalProxy.localRotation = gimbalRestRot;
+    }
+
+    // Lock the engine to its primary mode unless fully stowed, and hide the mode
+    // switch, so the afterburner (secondary mode) is only available in level flight.
+    private void SetAfterburnerAllowed(bool allow)
+    {
+        if (multimode == null || (abApplied && allow == abAllowed))
+            return;
+
+        abApplied = true;
+        abAllowed = allow;
 
         if (!allow && !multimode.runningPrimary)
             multimode.SetPrimary(HighLogic.LoadedSceneIsFlight);
@@ -408,9 +249,41 @@ public class ModuleSwivel : PartModule
 
         multimode.moduleIsEnabled = allow;
 
+        // loadFailure prevents the afterburner being turned on by other mods and AG.
         if (multimode.primaryEngine != null && multimode.secondaryEngine != null)
             multimode.loadFailure = !allow;
     }
+
+    private void UpdateText()
+    {
+        status = deploy ? (moving ? statusDeploying : statusDeployed)
+            : (moving ? statusRetracting : statusRetracted);
+
+        Events[nameof(Toggle)].guiName = deploy ? retractText : deployText;
+    }
+
+    #endregion
+
+    #region Elevation remap
+
+    // Triple-bearing chain: sin(elevation) = K sin^2(pi p) + cos(pi p)/2 + 1/2, solved
+    // for progress p. Maps the linear sweep fraction to true bearing travel.
+    private static readonly double K = (2.0 * Math.Sqrt(2.0) - 3.0) / 4.0;
+
+    private float ElevationRemap(float t) =>
+        (float)ProgressForElevation(Mathf.Lerp(90f, 0f, t));
+
+    private static double ProgressForElevation(double deg)
+    {
+        double s = Math.Sin(Clamp(deg, 0.0, 90.0) * (Math.PI / 180.0));
+        double a = K, b = -0.5, c = -(K + 0.5) + s;
+        double disc = b * b - 4.0 * a * c;
+        double x = (-b - Math.Sqrt(disc)) / (2.0 * a);
+        return Math.Acos(Clamp(x, -1.0, 1.0)) / Math.PI;
+    }
+
+    private static double Clamp(double v, double min, double max) =>
+        v < min ? min : v > max ? max : v;
 
     #endregion
 
