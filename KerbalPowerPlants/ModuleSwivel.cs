@@ -23,6 +23,9 @@ public class ModuleSwivel : PartModule
 
     [KSPField] public ElevationMap elevationMap = ElevationMap.Linear;
 
+    // Pitch (local-X) gimbal deflection below this (deg) is ignored.
+    [KSPField] public float pitchDeadzone = 0f;
+
     // Door sequencing, in normalized travel. Doors release the swivel at doorLead when
     // deploying; the door floor ramps 0..1 as swivel travel crosses [doorWait, doorClear].
     [KSPField] public float doorLead = 0.75f;
@@ -161,6 +164,9 @@ public class ModuleSwivel : PartModule
             ? Quaternion.Inverse(gimbalRestRot) * gimbalProxy.localRotation
             : Quaternion.identity;
 
+        if (pitchDeadzone > 0f)
+            deflection = DeadzonePitch(deflection, pitchDeadzone);
+
         // Doors lead on deploy: the swivel is commanded down only once they're past doorLead.
         bool commandDeployed = deploy && (doors == null || doors.progress >= doorLead);
         swivelProxy.localRotation = commandDeployed ? swivelDeployedRot * deflection : swivelRestRot;
@@ -242,6 +248,17 @@ public class ModuleSwivel : PartModule
         doors.minProgress = constraint != null
             ? Mathf.InverseLerp(doorWait, doorClear, constraint.Current)
             : 0f;
+    }
+
+    // Drop the pitch (local X) twist if it is below the deadzone, keeping the yaw (local Y)
+    // twist. Above the threshold the deflection is returned untouched, so nothing is rescaled.
+    private static Quaternion DeadzonePitch(Quaternion deflection, float dz)
+    {
+        if (Mathf.Abs(Rotations.TwistAngle(deflection, Vector3.right)) >= dz)
+            return deflection;
+
+        float yaw = Rotations.TwistAngle(deflection, Vector3.up);
+        return Quaternion.AngleAxis(yaw, Vector3.up);
     }
 
     private void EnableGimbal(bool on)
