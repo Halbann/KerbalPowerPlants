@@ -164,7 +164,7 @@ public class ModuleBreakableObjects : PartModule
         Dictionary<GameObject, Vector3> lastPos = null;
         if (perObjectVelocities)
         {
-            // Store positions per object.
+            // Store positions in part-local space (rigid part motion cancels).
             lastPos = [];
 
             foreach (GameObject go in targets)
@@ -172,7 +172,7 @@ public class ModuleBreakableObjects : PartModule
                 if (go == null)
                     continue;
 
-                lastPos.Add(go, go.transform.position);
+                lastPos.Add(go, part.transform.InverseTransformPoint(go.transform.position));
             }
 
             // Wait one physics update.
@@ -202,12 +202,11 @@ public class ModuleBreakableObjects : PartModule
             Vector3 spin = new(Random.Range(-3, 3), Random.Range(-3, 3), Random.Range(-3, 3));
             rb.angularVelocity = part.Rigidbody.angularVelocity + spin;
 
-            // Add per-object part-relative velocity.
-            if (perObjectVelocities && lastPos.TryGetValue(go, out Vector3 lastObjectPos))
+            // Add per-object animation velocity, measured in part-local space.
+            if (perObjectVelocities && lastPos.TryGetValue(go, out Vector3 lastLocalPos))
             {
-                var worldDelta = go.transform.position - lastObjectPos;
-                var pointVelocity = part.Rigidbody.GetPointVelocity(go.transform.position);
-                linear += (worldDelta / Time.fixedDeltaTime - pointVelocity) * perObjectMultiplier;
+                Vector3 localDelta = part.transform.InverseTransformPoint(go.transform.position) - lastLocalPos;
+                linear += part.transform.TransformVector(localDelta) / Time.fixedDeltaTime * perObjectMultiplier;
             }
 
             // Tangential velocity so it flies off spinning about the vessel's CoM (arm x w = w x r).
