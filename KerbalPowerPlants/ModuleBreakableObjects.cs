@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using KSP.Localization;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -7,7 +9,7 @@ namespace KerbalPowerPlants;
 
 public class ModuleBreakableObjects : PartModule
 {
-    [KSPField] public string objectNames = "";
+    [KSPField] public string objectPatterns = "";
     [KSPField] public float impactResistance = 10f;
     [KSPField] public float windResistance = 3f;
     [KSPField] public double gResistance = double.PositiveInfinity;
@@ -22,8 +24,10 @@ public class ModuleBreakableObjects : PartModule
     private readonly List<GameObject> targets = [];
     private readonly List<Func<bool>> conditions = [];
     private Transform reference;
+    private int repairKitsNecessary = 1;
 
     public event Action OnBroke;
+    public event Action OnRepaired;
 
     // Siblings register a gate; breaking requires every gate true (none = always).
     public void AddBreakCondition(Func<bool> condition) => conditions.Add(condition);
@@ -36,47 +40,60 @@ public class ModuleBreakableObjects : PartModule
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(objectNames))
+        if (string.IsNullOrWhiteSpace(objectPatterns))
         {
-            this.ErrorAndDisable("no objectNames set");
+            this.ErrorAndDisable("no objectPatterns set");
             return;
         }
 
-        // Get name prefixes.
-        string[] prefixes = objectNames.Split(',');
-        for (int i = 0; i < prefixes.Length; i++)
-            prefixes[i] = prefixes[i].Trim();
+        if (!FindTargets())
+            return;
 
-        // Search game objects for ones that match a prefix.
+        // Stock EVA-repair kit count, scaled by part mass.
+        repairKitsNecessary = Math.Min(Math.Max((int)(part.mass / GameSettings.PART_REPAIR_MASS_PER_KIT), 1), GameSettings.PART_REPAIR_MAX_KIT_AMOUNT);
+        BaseEvent repair = Events[nameof(Repair)];
+        repair.guiName = Localizer.Format("#autoLOC_6005092", repairKitsNecessary.ToString());
+        repair.active = broken;
+
+        // Apply persistent state.
+        if (broken)
+            foreach (GameObject go in targets)
+                go.SetActive(false);
+    }
+
+    // Find the model objects to break; add colliders where missing.
+    private bool FindTargets()
+    {
+        targets.Clear();
+
+        List<Regex> patterns = [];
+        foreach (string p in objectPatterns.Split(','))
+        {
+            string trimmed = p.Trim();
+            if (trimmed.Length > 0)
+                patterns.Add(new Regex(trimmed));
+        }
+
         Transform model = part.FindModelTransform("model") ?? part.transform;
         foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
         {
-            if (!Matches(t.name, prefixes))
+            if (!Matches(t.name, patterns))
                 continue;
 
             if (!t.GetComponent<Collider>())
-                t.gameObject.AddComponent<BoxCollider>();
+                t.gameObject.AddComponent<BoxCollider>(); // Box collider automatically sizes to mesh BB.
 
             targets.Add(t.gameObject);
         }
 
         if (targets.Count == 0)
         {
-            this.ErrorAndDisable($"no objects matching '{objectNames}'");
-            return;
-        }
-
-        // Apply persistent state.
-        if (broken)
-        {
-            foreach (GameObject go in targets)
-                go.SetActive(false);
-
-            enabled = false; // Only breaks once (for now).
-            return;
+            this.ErrorAndDisable($"no objects matching '{objectPatterns}'");
+            return false;
         }
 
         reference = targets[0].transform;
+        return true;
     }
 
     private bool ConditionsMet()
@@ -89,10 +106,10 @@ public class ModuleBreakableObjects : PartModule
         return true;
     }
 
-    private static bool Matches(string name, string[] prefixes)
+    private static bool Matches(string name, List<Regex> patterns)
     {
-        foreach (string prefix in prefixes)
-            if (prefix.Length > 0 && name.StartsWith(prefix))
+        foreach (Regex pattern in patterns)
+            if (pattern.IsMatch(name))
                 return true;
 
         return false;
@@ -140,13 +157,17 @@ public class ModuleBreakableObjects : PartModule
     {
         broken = true;
 
-        // Detach each target into free-flying debris.
+        // Shed a throwaway copy of each target as free-flying debris, then hide
+        // the real object so repair can bring it back with all references intact.
         foreach (GameObject go in targets)
         {
             if (go == null)
                 continue;
 
-            physicalObject obj = physicalObject.ConvertToPhysicalObject(part, go);
+            GameObject debris = Instantiate(go, go.transform.parent);
+            go.SetActive(false);
+
+            physicalObject obj = physicalObject.ConvertToPhysicalObject(part, debris);
             Rigidbody rb = obj.rb;
             rb.maxAngularVelocity = PhysicsGlobals.MaxAngularVelocity;
 
@@ -161,15 +182,14 @@ public class ModuleBreakableObjects : PartModule
 
             rb.mass = subPartMass;
             rb.useGravity = false;
-            go.transform.parent = null;
-            obj.origDrag = panelDrag;   
+            obj.origDrag = panelDrag;
         }
-
-        targets.Clear();
 
         // Screen message.
         if (!string.IsNullOrWhiteSpace(breakMessage) && vessel == FlightGlobals.ActiveVessel)
             ScreenMessages.PostScreenMessage($"<color=orange>[{part.partInfo.title}]: {breakMessage}</color>", 6f, ScreenMessageStyle.UPPER_CENTER);
+
+        Events[nameof(Repair)].active = true;
 
         part.RefreshHighlighter();
         part.ResetCollisions();
@@ -177,4 +197,60 @@ public class ModuleBreakableObjects : PartModule
 
         OnBroke?.Invoke();
     }
+
+    // EVA repair, mirroring ModuleDeployablePart.EventRepairExternal.
+    [KSPEvent(guiActiveUnfocused = true, externalToEVAOnly = true, guiActive = false, unfocusedRange = 4f, active = false, guiName = "#autoLOC_8003453")]
+    public void Repair()
+    {
+        Vessel eva = FlightGlobals.ActiveVessel;
+
+        if (HighLogic.CurrentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().KerbalExperienceEnabled(HighLogic.CurrentGame.Mode)
+            && eva.VesselValues.RepairSkill.value < 1)
+        {
+            ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_246904", 1.ToString()));
+            return;
+        }
+
+        if (!eva.isEVA || eva.evaController.ModuleInventoryPartReference == null)
+            return;
+
+        if (eva.VesselValues.RepairSkill.value > 0)
+        {
+            ModuleInventoryPart inventory = eva.evaController.ModuleInventoryPartReference;
+            if (inventory.TotalAmountOfPartStored("evaRepairKit") >= repairKitsNecessary)
+            {
+                inventory.RemoveNPartsFromInventory("evaRepairKit", repairKitsNecessary, playSound: true);
+                if (broken)
+                    DoRepair();
+                return;
+            }
+
+            AvailablePart kit = PartLoader.getPartInfoByName("evaRepairKit");
+            if (kit != null)
+                ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_6006097", repairKitsNecessary.ToString(), kit.title));
+        }
+        else
+        {
+            ScreenMessages.PostScreenMessage(Localizer.Format("#autoLOC_6006098"));
+        }
+    }
+
+    private void DoRepair()
+    {
+        // Unhide originals.
+        foreach (GameObject go in targets)
+            if (go) go.SetActive(true);
+
+        broken = false;
+        Events[nameof(Repair)].active = false;
+
+        part.RefreshHighlighter();
+        part.ResetCollisions();
+        GameEvents.onPartRepaired.Fire(part);
+        GameEvents.onVesselWasModified.Fire(vessel);
+
+        OnRepaired?.Invoke();
+    }
+
+    // todo: destruction should affect drag cubes
 }

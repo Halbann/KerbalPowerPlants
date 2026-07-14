@@ -1,8 +1,8 @@
 namespace KerbalPowerPlants;
 
 // Bridges the intake cover's break state to sibling modules:
-// gates breaking on the cover being fully deployed, and throttles the
-// intake once the cover is gone.
+// gates breaking on the cover being fully deployed, throttles the
+// intake once the cover is gone, and restores it on repair.
 public class ModuleIntakeCover : PartModule
 {
     [KSPField] public string linkedAnimationName = "Cover";
@@ -10,6 +10,7 @@ public class ModuleIntakeCover : PartModule
     [KSPField] public float brokenIntakeMultiplier = 0.3f;
 
     private ModuleResourceIntake intake;
+    private double originalArea;
 
     public override void OnStart(StartState startState)
     {
@@ -26,12 +27,15 @@ public class ModuleIntakeCover : PartModule
             return;
         }
 
+        originalArea = intake.area;
+
         breaker.AddBreakCondition(() => cover.Progress >= animationProgressThreshold);
+
+        breaker.OnBroke += ApplyPenalty;
+        breaker.OnRepaired += RemovePenalty;
 
         if (breaker.broken)
             ApplyPenalty();
-        else
-            breaker.OnBroke += ApplyPenalty;
     }
 
     private ModuleLinkedAnimation FindCover()
@@ -43,5 +47,6 @@ public class ModuleIntakeCover : PartModule
         return null;
     }
 
-    private void ApplyPenalty() => intake.area *= brokenIntakeMultiplier;
+    private void ApplyPenalty() => intake.area = originalArea * brokenIntakeMultiplier;
+    private void RemovePenalty() => intake.area = originalArea;
 }
