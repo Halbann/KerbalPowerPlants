@@ -14,8 +14,8 @@ public class ModuleBreakableObjects : PartModule
     [KSPField] public float impactResistance = 10f;
     [KSPField] public float windResistance = 3f;
     [KSPField] public double gResistance = double.PositiveInfinity;
-    [KSPField] public float subPartMass = 0.01f;
-    [KSPField] public float panelDrag = 1f;
+    [KSPField] public float objectMass = 0.01f;
+    [KSPField] public float objectDrag = 1f;
     [KSPField] public string breakMessage = "";
     [KSPField] public bool perObjectVelocities = false;
     [KSPField] public float perObjectMultiplier = 1f;
@@ -214,9 +214,9 @@ public class ModuleBreakableObjects : PartModule
             Vector3 arm = vessel.CurrentCoM - part.Rigidbody.worldCenterOfMass;
             rb.velocity = part.Rigidbody.velocity + linear + Vector3.Cross(arm, rb.angularVelocity);
 
-            rb.mass = subPartMass;
+            rb.mass = objectMass;
             rb.useGravity = false;
-            obj.origDrag = panelDrag;
+            obj.origDrag = objectDrag;
         }
 
         // Screen message.
