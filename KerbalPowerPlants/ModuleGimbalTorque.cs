@@ -328,14 +328,22 @@ public class ModuleGimbalTorque : PartModule, ITorqueProvider
             }
             if (thrust <= 0f) continue;
 
+            // Probe from the rest pose, not the live transform. t.forward/right/up rotate as
+            // the gimbal deflects, and this runs on SAS's autopilot callback while the proxy is
+            // left deflected, so reading them live makes the reported authority wobble with
+            // deflection -- which SAS folds into its PID autotune and oscillates on. Deflection
+            // is a pure rotation about the transform origin, so t.position is unaffected.
+            Quaternion rest = t.parent.rotation * initRots[i];
             Vector3 r = t.position - com;
-            Vector3 thrustDir = t.forward;
+            Vector3 thrustDir = rest * Vector3.forward;
+            Vector3 axRight = rest * Vector3.right;
+            Vector3 axUp = rest * Vector3.up;
 
             // Torque produced (relative to neutral) at each single-axis limit, finite deflection.
-            Vector3 tXP = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(gimbalRangeXP * limiter, t.right) * thrustDir) - thrustDir));
-            Vector3 tXN = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(-gimbalRangeXN * limiter, t.right) * thrustDir) - thrustDir));
-            Vector3 tYP = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(gimbalRangeYP * limiter, t.up) * thrustDir) - thrustDir));
-            Vector3 tYN = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(-gimbalRangeYN * limiter, t.up) * thrustDir) - thrustDir));
+            Vector3 tXP = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(gimbalRangeXP * limiter, axRight) * thrustDir) - thrustDir));
+            Vector3 tXN = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(-gimbalRangeXN * limiter, axRight) * thrustDir) - thrustDir));
+            Vector3 tYP = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(gimbalRangeYP * limiter, axUp) * thrustDir) - thrustDir));
+            Vector3 tYN = Vector3.Cross(r, thrust * ((Quaternion.AngleAxis(-gimbalRangeYN * limiter, axUp) * thrustDir) - thrustDir));
 
             AxisAuthority(tXP, tXN, tYP, tYN, axPitch, out float p, out float n); pos.x += p; neg.x += n;
             AxisAuthority(tXP, tXN, tYP, tYN, axYaw, out p, out n); pos.z += p; neg.z += n;
