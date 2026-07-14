@@ -18,6 +18,7 @@ public class ModuleBreakableObjects : PartModule
     [KSPField] public float panelDrag = 1f;
     [KSPField] public string breakMessage = "";
     [KSPField] public bool perObjectVelocities = false;
+    [KSPField] public float perObjectMutiplier = 1f;
 
     [KSPField(isPersistant = true)] public bool broken;
 
@@ -160,8 +161,6 @@ public class ModuleBreakableObjects : PartModule
 
     private IEnumerator BreakCoroutine()
     {
-        broken = true;
-
         Dictionary<GameObject, Vector3> lastPos = null;
         if (perObjectVelocities)
         {
@@ -173,7 +172,7 @@ public class ModuleBreakableObjects : PartModule
                 if (go == null)
                     continue;
 
-                lastPos.Add(go, transform.position);
+                lastPos.Add(go, go.transform.position);
             }
 
             // Wait one physics update.
@@ -181,6 +180,8 @@ public class ModuleBreakableObjects : PartModule
             while (Time.fixedTime == collisionTime)
                 yield return new WaitForFixedUpdate();
         }
+
+        broken = true;
 
         // Shed a throwaway copy of each target as free-flying debris, then hide
         // the real object so repair can bring it back with all references intact.
@@ -203,7 +204,11 @@ public class ModuleBreakableObjects : PartModule
 
             // Add per-object part-relative velocity.
             if (perObjectVelocities && lastPos.TryGetValue(go, out Vector3 lastObjectPos))
-                linear += (go.transform.position - lastObjectPos) / Time.fixedDeltaTime - part.Rigidbody.velocity;
+            {
+                var worldDelta = go.transform.position - lastObjectPos;
+                var pointVelocity = part.Rigidbody.GetPointVelocity(go.transform.position);
+                linear += (worldDelta / Time.fixedDeltaTime - pointVelocity) * perObjectMutiplier;
+            }
 
             // Tangential velocity so it flies off spinning about the vessel's CoM (arm x w = w x r).
             Vector3 arm = vessel.CurrentCoM - part.Rigidbody.worldCenterOfMass;
