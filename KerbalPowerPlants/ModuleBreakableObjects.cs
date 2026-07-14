@@ -18,7 +18,7 @@ public class ModuleBreakableObjects : PartModule
     [KSPField] public float panelDrag = 1f;
     [KSPField] public string breakMessage = "";
     [KSPField] public bool perObjectVelocities = false;
-    [KSPField] public float perObjectMutiplier = 1f;
+    [KSPField] public float perObjectMultiplier = 1f;
 
     [KSPField(isPersistant = true)] public bool broken;
 
@@ -207,7 +207,7 @@ public class ModuleBreakableObjects : PartModule
             {
                 var worldDelta = go.transform.position - lastObjectPos;
                 var pointVelocity = part.Rigidbody.GetPointVelocity(go.transform.position);
-                linear += (worldDelta / Time.fixedDeltaTime - pointVelocity) * perObjectMutiplier;
+                linear += (worldDelta / Time.fixedDeltaTime - pointVelocity) * perObjectMultiplier;
             }
 
             // Tangential velocity so it flies off spinning about the vessel's CoM (arm x w = w x r).
