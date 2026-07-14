@@ -33,6 +33,19 @@ $versionFile = Join-Path $root "GameData\$modName\$modName.version"
 $version = (Get-Content $versionFile -Raw | ConvertFrom-Json).VERSION
 Write-Host "Version: $version" -ForegroundColor Cyan
 
+# Pull Agencies from the single source of truth (KP-Core), pinned.
+$kpCoreRef = "main"   # or a tag/commit for reproducible releases
+$agenciesSrc = "GameData/KerbalPowers/Agencies"
+$dest = Join-Path $root "GameData\KerbalPowers"
+
+$tmp = Join-Path $env:TEMP "kp-core-$([guid]::NewGuid())"
+git clone --depth 1 --filter=blob:none --sparse `
+    --branch $kpCoreRef https://github.com/KerbalPowers/KP-Core.git $tmp
+git -C $tmp sparse-checkout set $agenciesSrc
+New-Item -ItemType Directory -Force -Path $dest | Out-Null
+Copy-Item (Join-Path $tmp $agenciesSrc) $dest -Recurse -Force
+Remove-Item $tmp -Recurse -Force
+
 # Package GameData into Builds\<mod>-<version>.zip.
 $buildsDir = Join-Path $root "Builds"
 New-Item -ItemType Directory -Force -Path $buildsDir | Out-Null

@@ -53,3 +53,6 @@ GameData/*/*.txt
 # unused code snippets
 Archive/
 /GameData/KerbalPowerPlants/Parts/@thumbs
+
+# Core agencies.
+/GameData/KerbalPowers/
