@@ -1,6 +1,6 @@
 # Assets
 
-Copyright (c) 2026 MiffedStarfish and Spartwo. All Rights Reserved.
+Copyright (c) 2026 MiffedStarfish, Spartwo and Ferroequin. All Rights Reserved.
 
 # Code
 
