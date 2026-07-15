@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using KSP.Localization;
@@ -13,9 +14,11 @@ public class ModuleBreakableObjects : PartModule
     [KSPField] public float impactResistance = 10f;
     [KSPField] public float windResistance = 3f;
     [KSPField] public double gResistance = double.PositiveInfinity;
-    [KSPField] public float subPartMass = 0.01f;
-    [KSPField] public float panelDrag = 1f;
+    [KSPField] public float objectMass = 0.01f;
+    [KSPField] public float objectDrag = 1f;
     [KSPField] public string breakMessage = "";
+    [KSPField] public bool perObjectVelocities = false;
+    [KSPField] public float perObjectMultiplier = 1f;
 
     [KSPField(isPersistant = true)] public bool broken;
 
@@ -153,8 +156,31 @@ public class ModuleBreakableObjects : PartModule
 
     private bool ShouldBreakFromG() => vessel.geeForce > gResistance;
 
-    private void Break()
+    private void Break() =>
+        StartCoroutine(BreakCoroutine());
+
+    private IEnumerator BreakCoroutine()
     {
+        Dictionary<GameObject, Vector3> lastPos = null;
+        if (perObjectVelocities)
+        {
+            // Store positions in part-local space (rigid part motion cancels).
+            lastPos = [];
+
+            foreach (GameObject go in targets)
+            {
+                if (go == null)
+                    continue;
+
+                lastPos.Add(go, part.transform.InverseTransformPoint(go.transform.position));
+            }
+
+            // Wait one physics update.
+            float collisionTime = Time.fixedTime;
+            while (Time.fixedTime == collisionTime)
+                yield return new WaitForFixedUpdate();
+        }
+
         broken = true;
 
         // Shed a throwaway copy of each target as free-flying debris, then hide
@@ -176,13 +202,20 @@ public class ModuleBreakableObjects : PartModule
             Vector3 spin = new(Random.Range(-3, 3), Random.Range(-3, 3), Random.Range(-3, 3));
             rb.angularVelocity = part.Rigidbody.angularVelocity + spin;
 
+            // Add per-object animation velocity, measured in part-local space.
+            if (perObjectVelocities && lastPos.TryGetValue(go, out Vector3 lastLocalPos))
+            {
+                Vector3 localDelta = part.transform.InverseTransformPoint(go.transform.position) - lastLocalPos;
+                linear += part.transform.TransformVector(localDelta) / Time.fixedDeltaTime * perObjectMultiplier;
+            }
+
             // Tangential velocity so it flies off spinning about the vessel's CoM (arm x w = w x r).
             Vector3 arm = vessel.CurrentCoM - part.Rigidbody.worldCenterOfMass;
             rb.velocity = part.Rigidbody.velocity + linear + Vector3.Cross(arm, rb.angularVelocity);
 
-            rb.mass = subPartMass;
+            rb.mass = objectMass;
             rb.useGravity = false;
-            obj.origDrag = panelDrag;
+            obj.origDrag = objectDrag;
         }
 
         // Screen message.
