@@ -1,12 +1,10 @@
 namespace KerbalPowerPlants;
 
-// Base: applies a configurable multiplier to some numeric module value
-// while the part's breakable objects are broken, restoring it on repair.
+// Base: scales a subclass-defined penalty while the part's breakable
+// objects are broken, restoring it on repair.
 public abstract class ModuleBrokenPenalty : PartModule
 {
     [KSPField] public float brokenMultiplier = 0.3f;
-
-    private double original;
 
     public override void OnStart(StartState startState)
     {
@@ -20,8 +18,6 @@ public abstract class ModuleBrokenPenalty : PartModule
             return;
         }
 
-        original = Value;
-
         breaker.OnBroke += ApplyPenalty;
         breaker.OnRepaired += RemovePenalty;
 
@@ -29,10 +25,11 @@ public abstract class ModuleBrokenPenalty : PartModule
             ApplyPenalty();
     }
 
-    // Find the target module (and register any break gates); false if unavailable.
+    // Find the target module (and register any break gates), caching originals; false if unavailable.
     protected abstract bool Initialize(ModuleBreakableObjects breaker);
-    protected abstract double Value { get; set; }
+    // Set the penalized fields to their original value times factor (factor 1 restores them).
+    protected abstract void Scale(float factor);
 
-    private void ApplyPenalty() => Value = original * brokenMultiplier;
-    private void RemovePenalty() => Value = original;
+    private void ApplyPenalty() => Scale(brokenMultiplier);
+    private void RemovePenalty() => Scale(1f);
 }

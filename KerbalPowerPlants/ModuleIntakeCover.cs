@@ -8,6 +8,7 @@ public class ModuleIntakeCover : ModuleBrokenPenalty
     [KSPField] public float animationProgressThreshold = 0.3f;
 
     private ModuleResourceIntake intake;
+    private double originalArea;
 
     protected override bool Initialize(ModuleBreakableObjects breaker)
     {
@@ -17,15 +18,12 @@ public class ModuleIntakeCover : ModuleBrokenPenalty
         if (intake == null || cover == null)
             return false;
 
+        originalArea = intake.area;
         breaker.AddBreakCondition(() => cover.Progress >= animationProgressThreshold);
         return true;
     }
 
-    protected override double Value
-    {
-        get => intake.area;
-        set => intake.area = value;
-    }
+    protected override void Scale(float factor) => intake.area = originalArea * factor;
 
     private ModuleLinkedAnimation FindCover()
     {
