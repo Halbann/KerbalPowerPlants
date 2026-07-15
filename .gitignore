@@ -56,3 +56,5 @@ Archive/
 
 # Core agencies.
 /GameData/KerbalPowers/
+
+*.loadmeta
