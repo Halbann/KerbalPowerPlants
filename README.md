@@ -6,7 +6,7 @@
 
 * 🟨 J-68 "Pendragon" Afterburning Turbojet
 * 🟨 J-9 "Grumble" Turbofan
-* 🟦 J-S485 "Puma" Afterburning Turbofan
+* ✅ J-S485 "Puma" Afterburning Turbofan
 * ✅ J-V491 "Lynx" Vectored Afterburning Turbofan
 * ✅ Inline Lift Fan
 * ✅ J-U16 “Zephyr” Unducted Turbofan
