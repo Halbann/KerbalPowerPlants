@@ -46,6 +46,9 @@ New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item (Join-Path $tmp $agenciesSrc) $dest -Recurse -Force
 Remove-Item $tmp -Recurse -Force
 
+# Delete thumbnail caches.
+Get-ChildItem (Join-Path $root "GameData") -Directory -Recurse -Filter "@thumbs" | Remove-Item -Recurse -Force
+
 # Package GameData into Builds\<mod>-<version>.zip.
 $buildsDir = Join-Path $root "Builds"
 New-Item -ItemType Directory -Force -Path $buildsDir | Out-Null
