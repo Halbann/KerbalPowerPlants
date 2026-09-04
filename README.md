@@ -5,7 +5,9 @@
 🟥 No Longer Planned | ⬜ Definite | ⬛  Maybe
 
 * 🟨 J-68 "Pendragon" Afterburning Turbojet
-* 🟨 J-9 "Grumble" Turbofan
+* ⬛ J-20 "Coom" Radial Pulsejet
+* ⬛ J-43 "Ingrate" Miniaturised Turbojet
+* ✅ J-9 "Grumble" Turbofan
 * ✅ J-S485 "Puma" Afterburning Turbofan
 * ✅ J-V491 "Lion" Vectored Afterburning Turbofan
 * ✅ Inline Lift Fan
