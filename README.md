@@ -1,5 +1,8 @@
-# KerbalPowerPlants
 
+# KerbalPowerPlants
+<img width="4480" height="2080" alt="image" src="https://github.com/user-attachments/assets/35da38ee-f171-483e-989e-7963fc4d28f4" />
+
+## Progress
 ✅ Complete | 🟧 Mesh in Progress | 🟨 Texture in Progress | 🟦 Configration In Progress
 
 🟥 No Longer Planned | ⬜ Definite | ⬛  Maybe
