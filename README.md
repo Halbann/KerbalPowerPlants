@@ -34,6 +34,7 @@ A: Kerbal Powerplants is a new mod, while we have done internal testing the only
 * 🟨 J-68 "Pendragon" Afterburning Turbojet
 * ⬛ J-20 "Bloom" Radial Pulsejet
 * ⬛ J-43 "Ingrate" Miniaturised Turbojet
+* ⬛ J-605 "Whisper" Low-Observable Turbofan
 * ✅ J-9 "Grumble" Turbofan
 * ✅ J-S485 "Puma" Afterburning Turbofan
 * ✅ J-V491 "Lion" Vectored Afterburning Turbofan
