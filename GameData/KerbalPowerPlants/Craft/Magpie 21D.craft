@@ -2,7 +2,7 @@ ship = Magpie 21D
 version = 1.12.5
 description = 
 type = SPH
-size = 3.53272486,2.23081207,6.48185682
+size = 3.53272486,2.23081207,6.48185825
 steamPublishedFileId = 0
 persistentId = 2189403007
 rot = 0,0,0,1
@@ -213,7 +213,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 0
 		ArmorThickness = 0
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -237,7 +236,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 25
 		armorVolume = 1.36511648
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -246,6 +244,696 @@ PART
 		}
 		ACTIONS
 		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = MechJebCore
+		isEnabled = True
+		running = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+			OnOrbitProgradeAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnOrbitRetrogradeAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnOrbitNormalAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnOrbitAntinormalAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnOrbitRadialInAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnOrbitRadialOutAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnKillRotationAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnDeactivateSmartASSAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnLandsomewhereAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnLandTargetAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnPanicAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnTranslatronOffAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnTranslatronKeepVertAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnTranslatronZeroSpeedAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnTranslatronPlusOneSpeedAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnTranslatronMinusOneSpeedAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnTranslatronToggleHSAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+			OnAscentAPToggleAction
+			{
+				actionGroup = None
+				wasActiveBeforePartWasAdjusted = False
+			}
+		}
+		MechJebLocalSettings
+		{
+			MechJebModuleMenu
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAirplaneAutopilot
+			{
+				HeadingHoldEnabled = False
+				AltitudeHoldEnabled = False
+				VertSpeedHoldEnabled = False
+				RollHoldEnabled = False
+				SpeedHoldEnabled = False
+				AltitudeTarget = 0
+				HeadingTarget = 90
+				RollTarget = 0
+				SpeedTarget = 0
+				VertSpeedTarget = 0
+				BankAngle = 30
+				UnlockParts = 
+				UnlockTechs = 
+				AccKp
+				{
+					ValConfig = 0.5
+					TextConfig = 0.5
+				}
+				AccKi
+				{
+					ValConfig = 0.5
+					TextConfig = 0.5
+				}
+				AccKd
+				{
+					ValConfig = 0.0050000000000000001
+					TextConfig = 0.005
+				}
+				PitKp
+				{
+					ValConfig = 2
+					TextConfig = 2
+				}
+				PitKi
+				{
+					ValConfig = 1
+					TextConfig = 1
+				}
+				PitKd
+				{
+					ValConfig = 0.0050000000000000001
+					TextConfig = 0.005
+				}
+				RolKp
+				{
+					ValConfig = 0.5
+					TextConfig = 0.5
+				}
+				RolKi
+				{
+					ValConfig = 0.02
+					TextConfig = 0.02
+				}
+				RolKd
+				{
+					ValConfig = 0.5
+					TextConfig = 0.5
+				}
+				YawKp
+				{
+					ValConfig = 1
+					TextConfig = 1
+				}
+				YawKi
+				{
+					ValConfig = 0.25
+					TextConfig = 0.25
+				}
+				YawKd
+				{
+					ValConfig = 0.02
+					TextConfig = 0.02
+				}
+				YawLimit
+				{
+					ValConfig = 10
+					TextConfig = 10
+				}
+				RollLimit
+				{
+					ValConfig = 45
+					TextConfig = 45
+				}
+				PitchDownLimit
+				{
+					ValConfig = 15
+					TextConfig = 15
+				}
+				PitchUpLimit
+				{
+					ValConfig = 25
+					TextConfig = 25
+				}
+			}
+			MechJebModuleAirplaneGuidance
+			{
+				showpid = False
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentClassicAutopilot
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentClassicPathMenu
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentMenu
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentPVGAutopilot
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentPVGSettingsMenu
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentSettings
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAscentSettingsMenu
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAttitudeAdjustment
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleCustomWindowEditor
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleDebugArrows
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleDockingAutopilot
+			{
+				forceRol = False
+				overrideSafeDistance = False
+				overrideTargetSize = False
+				UnlockParts = 
+				UnlockTechs = 
+				rol
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+			}
+			MechJebModuleDockingGuidance
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleInfoItems
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleLandingAutopilot
+			{
+				DeployGears = True
+				DeployChutes = True
+				RCSAdjustment = True
+				UnlockParts = 
+				UnlockTechs = 
+				TouchdownSpeed
+				{
+					ValConfig = 1.5
+					TextConfig = 1.5
+				}
+				LimitGearsStage
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+				LimitChutesStage
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+			}
+			MechJebModuleLandingGuidance
+			{
+				_landingSiteIdx = 0
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleLandingPredictions
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleManeuverPlanner
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleStageStats
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleNodeEditor
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleNodeExecutor
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleGuidanceController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleRCSBalancerWindow
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleRendezvousAutopilot
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleRendezvousAutopilotWindow
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleRendezvousGuidance
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleRoverController
+			{
+				ControlHeading = False
+				ControlSpeed = False
+				BrakeOnEject = False
+				BrakeOnEnergyDepletion = False
+				WarpToDaylight = False
+				StabilityControl = False
+				LimitAcceleration = False
+				UnlockParts = 
+				UnlockTechs = 
+				heading
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+				speed
+				{
+					ValConfig = 10
+					TextConfig = 10
+				}
+			}
+			MechJebModuleRoverWindow
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleSettings
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleSmartASS
+			{
+				mode = ORBITAL
+				target = OFF
+				advReference = INERTIAL
+				advDirection = FORWARD
+				forceRol = False
+				forcePitch = True
+				forceYaw = True
+				UnlockParts = 
+				UnlockTechs = 
+				srfHdg
+				{
+					ValConfig = 90
+					TextConfig = 90
+				}
+				srfPit
+				{
+					ValConfig = 90
+					TextConfig = 90
+				}
+				srfRol
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+				srfVelYaw
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+				srfVelPit
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+				srfVelRol
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+				rol
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+			}
+			MechJebModuleSmartRcs
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleSpaceplaneAutopilot
+			{
+				bBreakAsSoonAsLanded = False
+				UnlockParts = 
+				UnlockTechs = 
+				glideslope
+				{
+					ValConfig = 2.5
+					TextConfig = 2.5
+				}
+				approachSpeed
+				{
+					ValConfig = 80
+					TextConfig = 80
+				}
+				touchdownSpeed
+				{
+					ValConfig = 60
+					TextConfig = 60
+				}
+				maximumSafeBankAngle
+				{
+					ValConfig = 25
+					TextConfig = 25
+				}
+			}
+			MechJebModuleSpaceplaneGuidance
+			{
+				runwayIndex = 0
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleSpinupController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleSuicideTimer
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleTargetController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleThrustWindow
+			{
+				autostageSavedState = False
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleTranslatron
+			{
+				UnlockParts = 
+				UnlockTechs = 
+				trans_spd
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+			}
+			MechJebModuleWarpHelper
+			{
+				UnlockParts = 
+				UnlockTechs = 
+				phaseAngle
+				{
+					ValConfig = 0
+					TextConfig = 0
+				}
+			}
+			MechJebModuleWaypointWindow
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleWaypointHelpWindow
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			ModExtensionDemo
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModulePVGGlueBall
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleCustomInfoWindow
+			{
+			}
+			MechJebModuleWarpController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleDeployableAntennaController
+			{
+				prev_shouldDeploy = False
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleSolarPanelController
+			{
+				prev_shouldDeploy = False
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleThrustController
+			{
+				LimitThrottle = False
+				LimiterMinThrottle = True
+				ElectricThrottle = False
+				UnlockParts = 
+				UnlockTechs = 
+				MaxThrottle
+				{
+					ValConfig = 1
+					TextConfig = 100
+				}
+				MinThrottle
+				{
+					ValConfig = 0.050000000000000003
+					TextConfig = 5
+				}
+				ElectricThrottleLo
+				{
+					ValConfig = 0.050000000000000003
+					TextConfig = 5
+				}
+				ElectricThrottleHi
+				{
+					ValConfig = 0.14999999999999999
+					TextConfig = 15
+				}
+			}
+			MechJebModuleRCSController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+				Tf
+				{
+					ValConfig = 1
+					TextConfig = 1
+				}
+				Kp
+				{
+					ValConfig = 0.12492219800962338
+					TextConfig = 0.124922198009623
+				}
+				Ki
+				{
+					ValConfig = 0.0073611111111111091
+					TextConfig = 0.00736111111111111
+				}
+				Kd
+				{
+					ValConfig = 0.53000000000000003
+					TextConfig = 0.53
+				}
+			}
+			MechJebModuleRCSBalancer
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleAttitudeController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+				MJAttitudeController
+				{
+				}
+				KosAttitudeController
+				{
+				}
+				HybridController
+				{
+				}
+				BetterController
+				{
+				}
+			}
+			MechJebModuleStagingController
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleFlightRecorder
+			{
+				MarkUT = 0
+				DeltaVExpended = 0
+				DragLosses = 0
+				GravityLosses = 0
+				SteeringLosses = 0
+				MarkLAN = 0
+				MarkLatitude = 0
+				MarkLongitude = 0
+				MarkAltitude = 0
+				MarkBodyIndex = 1
+				MaxDragGees = 0
+				UnlockParts = 
+				UnlockTechs = 
+			}
+			MechJebModuleFlightRecorderGraph
+			{
+				UnlockParts = 
+				UnlockTechs = 
+			}
 		}
 		UPGRADESAPPLIED
 		{
@@ -271,6 +959,21 @@ PART
 	MODULE
 	{
 		name = SSTURecolorGUI
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
 		isEnabled = True
 		stagingEnabled = True
 		EVENTS
@@ -334,7 +1037,7 @@ PART
 	part = miniFuselage_4289584512
 	partName = Part
 	persistentId = 3476992940
-	pos = -0.539539576,10.4090567,0.64114362
+	pos = -0.539539576,10.4090567,0.64114356
 	attPos = -0.261333257,-0.0244833529,-0.192463905
 	attPos0 = 0.261333257,-0.275516748,0.192463934
 	rot = -0.701057434,-0.0922960266,-0.092295967,-0.701057434
@@ -454,7 +1157,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 0
 		ArmorThickness = 0
-		ArmorSet = True
 		ExplodeMode = Dynamic
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -478,7 +1180,6 @@ PART
 		maxForce = 50
 		maxTorque = 50
 		maxG = 50
-		maxSupportedArmor = 40
 		armorVolume = 3.31501913
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -546,6 +1247,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -576,7 +1292,7 @@ PART
 	part = SmallGearBay_4289501196
 	partName = Part
 	persistentId = 1294505917
-	pos = -0.539539456,10.2138243,4.63944578
+	pos = -0.539539456,10.2138243,4.63944674
 	attPos = 0.027855318,3.98785663,-0.103958219
 	attPos0 = -0.0783853084,0.0104451142,0.292537719
 	rot = -8.42937027E-08,0.999282718,-0.0378747284,0
@@ -1012,7 +1728,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 0
 		ArmorThickness = 0
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -1036,7 +1751,6 @@ PART
 		maxForce = 50
 		maxTorque = 50
 		maxG = 50
-		maxSupportedArmor = 50
 		armorVolume = 4.33013868
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -1118,6 +1832,36 @@ PART
 	}
 	MODULE
 	{
+		name = RSE_Wheels
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleWaterfallFX
 		isEnabled = True
 		stagingEnabled = True
@@ -1152,7 +1896,7 @@ PART
 	part = miniFuselage_4289583576
 	partName = Part
 	persistentId = 3539670829
-	pos = -0.539539456,10.4090567,4.49270964
+	pos = -0.539539456,10.4090567,4.49271059
 	attPos = -1.41295374E-07,2.91406655,-3.31198919E-07
 	attPos0 = 4.61599505E-08,0.937499046,-1.722712E-07
 	rot = -0.707106948,-1.05619087E-08,5.270876E-08,-0.707106829
@@ -1268,7 +2012,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 0
 		ArmorThickness = 0
-		ArmorSet = True
 		ExplodeMode = Dynamic
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -1292,7 +2035,6 @@ PART
 		maxForce = 50
 		maxTorque = 50
 		maxG = 50
-		maxSupportedArmor = 45
 		armorVolume = 4.07507849
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -1360,6 +2102,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -1390,7 +2147,7 @@ PART
 	part = miniIntake_4289582692
 	partName = Part
 	persistentId = 4183669733
-	pos = -0.539540291,10.4090567,4.96146202
+	pos = -0.539540291,10.4090567,4.96146297
 	attPos = 0,0,0
 	attPos0 = -1.52504057E-07,0.46874845,-8.32959017E-08
 	rot = -0.707106948,3.18226192E-08,-1.07491935E-08,-0.707106829
@@ -1521,7 +2278,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 0
 		ArmorThickness = 0
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -1545,7 +2301,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 40
 		armorVolume = 1.33826554
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -1593,6 +2348,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -1623,7 +2393,7 @@ PART
 	part = standardNoseCone_4289582096
 	partName = Part
 	persistentId = 1486881949
-	pos = -0.541609287,10.4013367,5.0793519
+	pos = -0.541609287,10.4013367,5.07935286
 	attPos = -0.0399280712,0.19113028,0.149012983
 	attPos0 = 0.0378588811,0.395508051,-0.141293004
 	rot = 0.701057553,-0.0922967866,-0.092296727,0.701057315
@@ -1749,7 +2519,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 0
 		ArmorThickness = 0
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -1773,7 +2542,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 35
 		armorVolume = 1.52506983
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -1821,6 +2589,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -1840,7 +2623,7 @@ PART
 	part = KPJolt_4293739046
 	partName = Part
 	persistentId = 2755564845
-	pos = -0.539539635,10.4090567,0.172393262
+	pos = -0.539539635,10.4090567,0.172393024
 	attPos = 0,0,0
 	attPos0 = -3.91629058E-08,-0.468750268,7.64039711E-08
 	rot = 0.707106888,0,0,0.707106888
@@ -2063,7 +2846,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = -1
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -2087,7 +2869,6 @@ PART
 		maxForce = 75
 		maxTorque = 75
 		maxG = 50
-		maxSupportedArmor = 30
 		armorVolume = 1.59727705
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -2170,6 +2951,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleWaterfallFX
 		isEnabled = True
 		stagingEnabled = True
@@ -2204,10 +3000,10 @@ PART
 	part = GearLarge_4293713046
 	partName = Part
 	persistentId = 4170087577
-	pos = -0.539539635,10.3811369,3.64881253
+	pos = -0.539539635,10.3811369,3.64881301
 	attPos = -0.0853855759,2.89112663,0.318662167
 	attPos0 = 0.078159146,0.11654219,-0.291694045
-	rot = 0,1.00000012,0,-4.21468513E-08
+	rot = 0,1.00000024,0,-4.21468513E-08
 	attRot = 0.99999994,1.06143864E-06,5.22328447E-09,-6.87658708E-10
 	attRot0 = -0.0922959894,-0.701057374,0.701057374,-0.0922959894
 	mir = 1,1,1
@@ -2603,7 +3399,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = -1
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -2627,7 +3422,6 @@ PART
 		maxForce = 50
 		maxTorque = 50
 		maxG = 50
-		maxSupportedArmor = 110
 		armorVolume = 32.4880447
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -2695,6 +3489,36 @@ PART
 	MODULE
 	{
 		name = SSTURecolorGUI
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = RSE_Wheels
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
 		isEnabled = True
 		stagingEnabled = True
 		EVENTS
@@ -3161,7 +3985,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = -1
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -3185,7 +4008,6 @@ PART
 		maxForce = 50
 		maxTorque = 50
 		maxG = 50
-		maxSupportedArmor = 85
 		armorVolume = 17.7100067
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -3267,6 +4089,36 @@ PART
 	}
 	MODULE
 	{
+		name = RSE_Wheels
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleWaterfallFX
 		isEnabled = True
 		stagingEnabled = True
@@ -3301,10 +4153,10 @@ PART
 	part = winglet3_4293723306
 	partName = Part
 	persistentId = 1882998320
-	pos = -0.539540291,10.6485538,1.24463117
+	pos = -0.539540291,10.6485538,1.24463129
 	attPos = -0.140043244,1.15856338,0.522641242
 	attPos0 = 0.20202899,-0.555075884,-0.753978014
-	rot = -0.43045935,0.560985565,0.43045944,-0.560985446
+	rot = -0.43045938,0.560985565,0.43045944,-0.560985446
 	attRot = 1.52975588E-07,9.48751847E-07,0.130526081,0.991444826
 	attRot0 = -0.103553295,-0.786566198,0.0794592798,0.603553295
 	mir = 1,1,1
@@ -3531,7 +4383,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 400
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -3555,7 +4406,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 5.9000001
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -3589,6 +4439,21 @@ PART
 	MODULE
 	{
 		name = SSTURecolorGUI
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
 		isEnabled = True
 		stagingEnabled = True
 		EVENTS
@@ -3853,7 +4718,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 500
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -3877,7 +4741,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 3.4000001
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -3925,6 +4788,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -3944,7 +4822,7 @@ PART
 	part = elevon3_4293696738
 	partName = Part
 	persistentId = 940899474
-	pos = 0.286888421,10.4090586,0.91821444
+	pos = 0.28688848,10.4090586,0.91821444
 	attPos = 0.504947007,0.653401017,0.135298163
 	attPos0 = 0.29332155,-0.376330197,0.0785953328
 	rot = -9.90451099E-07,0.707106769,0.707107008,-8.64010417E-07
@@ -4167,7 +5045,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 500
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -4191,7 +5068,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 3.4000001
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -4239,6 +5115,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -4258,7 +5149,7 @@ PART
 	part = mediumHeliBlade_4293695052
 	partName = Part
 	persistentId = 2351546316
-	pos = -0.952859521,10.4090567,2.81376314
+	pos = -0.952859521,10.4090567,2.8137641
 	attPos = -0.106669873,2.5627377,-0.0285823941
 	attPos0 = -0.292566597,-0.390118301,-0.0783929974
 	rot = -0.499999553,0.500000656,-0.499999374,-0.500000775
@@ -4511,7 +5402,7 @@ PART
 	{
 		name = HitpointTracker
 		isEnabled = True
-		Hitpoints = 250
+		Hitpoints = 50
 		Armor = 10
 		ArmorRemaining = 100
 		ArmorTypeNum = 1
@@ -4520,7 +5411,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = -1
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -4544,7 +5434,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 1.4152087
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -4562,8 +5451,8 @@ PART
 	{
 		name = KSPTextureSwitch
 		isEnabled = True
-		currentTextureSet = MWNN_Stock_HeliBlades
-		persistentData = 0.137076,0.133245,0.141,0.125,0,1;0.118,0.118,0.118,0.125,0,1;0.706,0.706,0.706,0.125,0,1
+		currentTextureSet = OLM_Recolour_HeliBlades
+		persistentData = 0.7058824,0.7058824,0.7058824,0.1254902,0,1;0.1176471,0.1176471,0.1176471,0.1254902,0,1;0.1176471,0.1176471,0.1176471,0.1254902,0,1
 		stagingEnabled = True
 		EVENTS
 		{
@@ -4578,6 +5467,21 @@ PART
 	MODULE
 	{
 		name = SSTURecolorGUI
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
 		isEnabled = True
 		stagingEnabled = True
 		EVENTS
@@ -4611,10 +5515,10 @@ PART
 	part = mediumHeliBlade_4293694582
 	partName = Part
 	persistentId = 2906463278
-	pos = -0.126219571,10.4090567,2.81376457
+	pos = -0.126219571,10.4090567,2.81376553
 	attPos = 0.106669635,2.56273818,0.0285817832
 	attPos0 = 0.292566657,-0.390118301,0.078393057
-	rot = 0.500000119,-0.500000119,0.500000119,0.500000119
+	rot = 0.50000006,-0.50000006,0.50000006,0.50000006
 	attRot = -1.00000012,-1.08167356E-07,-1.47086041E-07,-1.28576198E-06
 	attRot0 = 0.0922959968,0.0922959968,-0.701057494,-0.701057374
 	mir = 1,1,1
@@ -4857,7 +5761,7 @@ PART
 	{
 		name = HitpointTracker
 		isEnabled = True
-		Hitpoints = 250
+		Hitpoints = 50
 		Armor = 10
 		ArmorRemaining = 100
 		ArmorTypeNum = 1
@@ -4866,7 +5770,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = -1
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -4890,7 +5793,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 1.4152087
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -4908,8 +5810,8 @@ PART
 	{
 		name = KSPTextureSwitch
 		isEnabled = True
-		currentTextureSet = MWNN_Stock_HeliBlades
-		persistentData = 0.137076,0.133245,0.141,0.125,0,1;0.118,0.118,0.118,0.125,0,1;0.706,0.706,0.706,0.125,0,1
+		currentTextureSet = OLM_Recolour_HeliBlades
+		persistentData = 0.7058824,0.7058824,0.7058824,0.1254902,0,1;0.1176471,0.1176471,0.1176471,0.1254902,0,1;0.1176471,0.1176471,0.1176471,0.1254902,0,1
 		stagingEnabled = True
 		EVENTS
 		{
@@ -4924,6 +5826,21 @@ PART
 	MODULE
 	{
 		name = SSTURecolorGUI
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
 		isEnabled = True
 		stagingEnabled = True
 		EVENTS
@@ -4957,10 +5874,10 @@ PART
 	part = structuralWing_4293690240
 	partName = Part
 	persistentId = 3576998893
-	pos = -0.470460564,10.4090567,2.70212913
+	pos = -0.470460564,10.4090567,2.7021296
 	attPos = 0.42004174,-1.81112003,6.38770871E-07
 	attPos0 = -0.350962698,0.0205397606,2.09547579E-08
-	rot = -0.707107067,-8.42937027E-08,8.42937027E-08,-0.707106709
+	rot = -0.707107067,-8.42936956E-08,8.42936956E-08,-0.707106709
 	attRot = 0,0,0,1
 	attRot0 = 1.19209247E-07,2.98023153E-08,-7.44701794E-08,1
 	mir = 1,1,1
@@ -5083,7 +6000,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 700
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -5107,7 +6023,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 9
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -5155,6 +6070,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -5174,10 +6104,10 @@ PART
 	part = structuralWing_4293689830
 	partName = Part
 	persistentId = 978348421
-	pos = -0.608618379,10.4090567,2.7021296
+	pos = -0.608618379,10.4090567,2.70213008
 	attPos = -0.420041442,-1.81111956,7.0099486E-07
 	attPos0 = 0.350962698,0.0205397606,-3.11993062E-08
-	rot = -1.15903845E-07,0.70710659,0.707107186,5.26835642E-08
+	rot = -1.15903831E-07,0.70710659,0.707107186,5.26835571E-08
 	attRot = 0,0,0,1
 	attRot0 = 1.63948371E-07,-1,-2.086162E-07,7.45057918E-08
 	mir = 1,1,1
@@ -5300,7 +6230,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 700
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -5324,7 +6253,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 9
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -5372,6 +6300,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -5391,7 +6334,7 @@ PART
 	part = structuralWing3_4293688498
 	partName = Part
 	persistentId = 615216178
-	pos = -1.01750648,10.3985643,1.25956321
+	pos = -1.01750648,10.3985643,1.25956333
 	attPos = -0.166957766,-3.64674401,0.0104936445
 	attPos0 = -0.31100896,0.413597822,-7.17118382E-08
 	rot = 0.512444854,-0.488463074,-0.48088643,-0.517254829
@@ -5517,7 +6460,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 400
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -5541,7 +6483,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 4.5
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -5589,6 +6530,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -5611,7 +6567,7 @@ PART
 	pos = -0.0615724027,10.3985643,1.25956297
 	attPos = 0.166958421,-3.64674401,0.0104936296
 	attPos0 = 0.3110089,0.413597822,-1.12922862E-07
-	rot = 0.480886519,0.51725477,-0.512445033,0.488462985
+	rot = 0.480886489,0.51725477,-0.512445033,0.488462955
 	attRot = 0,0,0,1
 	attRot0 = -2.03621113E-07,-8.94069601E-08,0.70710665,-0.707106948
 	mir = 1,1,1
@@ -5734,7 +6690,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 400
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -5758,7 +6713,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 4.5
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -5806,6 +6760,21 @@ PART
 	}
 	MODULE
 	{
+		name = ShipEffectsCollisions
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
 		name = ModuleNHPartInfo
 		isEnabled = True
 		stagingEnabled = True
@@ -5825,7 +6794,7 @@ PART
 	part = smallCtrlSrf_4293687570
 	partName = Part
 	persistentId = 731055881
-	pos = -0.539539337,10.4058027,4.99277449
+	pos = -0.539539337,10.4058027,4.99277544
 	attPos = 7.56699592E-09,0.111056864,0.311363459
 	attPos0 = 6.70552254E-08,0.389007747,-0.308109641
 	rot = -0.707107008,0,8.42937027E-08,-0.707106769
@@ -6055,7 +7024,6 @@ PART
 		SelectedArmorType = None
 		maxHitPoints = 300
 		ArmorThickness = 10
-		ArmorSet = True
 		ExplodeMode = Never
 		FireFX = True
 		FireFXLifeTimeInSeconds = 5
@@ -6079,7 +7047,6 @@ PART
 		maxForce = 22
 		maxTorque = 22
 		maxG = 50
-		maxSupportedArmor = 20
 		armorVolume = 0.969311059
 		ignitionTemp = -1
 		stagingEnabled = True
@@ -6113,6 +7080,21 @@ PART
 	MODULE
 	{
 		name = SSTURecolorGUI
+		isEnabled = True
+		stagingEnabled = True
+		EVENTS
+		{
+		}
+		ACTIONS
+		{
+		}
+		UPGRADESAPPLIED
+		{
+		}
+	}
+	MODULE
+	{
+		name = ShipEffectsCollisions
 		isEnabled = True
 		stagingEnabled = True
 		EVENTS
